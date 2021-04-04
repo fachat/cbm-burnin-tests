@@ -2,6 +2,21 @@
 
 #undef	FIX
 
+tmp1	= $20			; general temp value for XOR, or adding
+ptr1	= $21			; general pointer / 16 bit counter
+ptr2	= $23			; general pointer / 16 bit counter
+cnt	= $25			; general 8 bit counter
+;	= $26
+blkno	= $27			; block number for 8x96 test
+memp1	= $28			; memory test pointer
+pattrn	= $2a			; memory test pattern; will be increased each cycle (starts initialized by zp mem test)
+screen	= $2b			; start of screen ptr
+scrptr	= $2d			; current screen pointer
+lineptr	= $2f			; start of current line
+cols	= $31			; number of columns
+revfl	= $32			; reverse flag
+cycles	= $33			; 3 byte cycle counter
+
 	.word $0400
 	* = $0400
 
@@ -123,11 +138,11 @@ zpend	.(
 	; actual code to init
 	ldx #$ff
 	txs
-	stx $20		; XOR value ($ff)
+	stx tmp1	; XOR value ($ff)
 	jsr l10c1	; copy code to $200-$aff with XOR
 	jsr l10e7	; check copied code
 	bne l10b1
-	inc $20		; next XOR value($00)
+	inc tmp1	; next XOR value($00)
 	jsr l10c1	
 	jsr l10e7
 	bne l10b1
@@ -148,23 +163,23 @@ l10b7	ora #$80
 	; copy code from $1162-1a61 to $0200-0aff
 	; XORing bit with $20 in the process
 l10c1	lda #<l1162	; $62
-	sta $21
+	sta ptr1
 	lda #>l1162	; $11
-	sta $22
+	sta ptr1+1
 	lda #$00
-	sta $23
+	sta ptr2
 	lda #$02
-	sta $24
+	sta ptr2+1
 	ldy #$00
-l10d3	lda ($21),y
-	eor $20
-	sta ($23),y
+l10d3	lda (ptr1),y
+	eor tmp1
+	sta (ptr2),y
 	iny
 	bne l10d3
-l10dc	inc $22
-	inc $24
+l10dc	inc ptr1+1
+	inc ptr2+1
 	lda #$0b
-	cmp $24
+	cmp ptr2+1
 	bne l10d3
 l10e6	rts
 
@@ -177,24 +192,24 @@ l10e6	rts
 	; in the error exit - it jumps to where LDY is cleared,
 	; which sets the Z-flag. 
 l10e7	lda #<l1162	; $62
-	sta $21
+	sta ptr1
 	lda #>l1162	; $11
-	sta $22
+	sta ptr1+1
 	lda #$00
-	sta $23
+	sta ptr2
 	lda #$02
-	sta $24
+	sta ptr2+1
 	ldy #$00
-l10f9	lda ($21),y
-	eor $20
-	eor ($23),y
+l10f9	lda (ptr1),y
+	eor tmp1
+	eor (ptr2),y
 	bne l110e	; -> error exit
 	iny
 	bne l10f9
-	inc $22
-	inc $24
+	inc ptr1+1
+	inc ptr2+1
 	lda #$0b
-	eor $24
+	eor ptr2+1
 	bne l10f9
 l110e	ldy #$00
 	rts
@@ -301,15 +316,15 @@ l1193	lda #$60	; disable 8x96 mapping
 
 	; init cycles counter
 	lda #$00
-	sta $33
-	sta $34
-	sta $35
+	sta cycles
+	sta cycles+1
+	sta cycles+2
 
 	; init start of screen for chrout
 	lda #$80
-	sta $2c			; chrout scr hi ptr
+	sta screen+1			; chrout scr hi ptr
 	lda #$00
-	sta $2b			; chrout scr lo ptr
+	sta screen			; chrout scr lo ptr
 
 	; ------------------------------
 	; clear screen
@@ -320,14 +335,14 @@ l1193	lda #$60	; disable 8x96 mapping
 	; output banner message
 	.(
 	lda #$28		; 40 column?
-	sta $31
+	sta cols
 
 	lda #>initmsg-offset	;$09
-	sta $22
+	sta ptr1+1
 	lda #<initmsg-offset	;$45
-	sta $21
+	sta ptr1
 	ldy #$00
-l11bb	lda ($21),y
+l11bb	lda (ptr1),y
 	beq l11d8
 	pha
 	cmp #$13
@@ -335,38 +350,38 @@ l11bb	lda ($21),y
 	; on marker, move to $258 = char 600 = MIDDLE of line 7
 	; to print the right column of diag messages
 	lda #$82
-	sta $2c
+	sta screen+1
 	lda #$58
-	sta $2b
+	sta screen
 l11cc	pla
 	jsr chrout-offset	; l742
-	inc $21
+	inc ptr1
 	bne l11bb
-l11d4	inc $22
+l11d4	inc ptr1+1
 	bne l11bb
 	.)
 
 	; ------------------------------
 	; print out screen codes 0-255
 l11d8	lda #$80
-	sta $2e		; screen ptr hi
-	sta $30		; start of line
-	sta $2c		; chrout scr ptr hi
+	sta scrptr+1	; screen ptr hi
+	sta lineptr+1	; start of line
+	sta screen+1	; chrout scr ptr hi
 	lda #$a8
-	sta $2d		; screen ptr lo
-	sta $2b		; chrout scr ptr lo
-	sta $2f		; start of line
+	sta scrptr	; screen ptr lo
+	sta screen	; chrout scr ptr lo
+	sta lineptr	; start of line
 	lda #$40	; 64 columns?
-	sta $31
+	sta cols
 
 	ldy #$00
 	ldx #$00
 l11f0	txa
-	sta ($2d),y	; store value on screen
+	sta (scrptr),y	; store value on screen
 	inx
-	inc $2d
+	inc scrptr
 	bne l11fa
-l11f8	inc $2e
+l11f8	inc scrptr+1
 l11fa	txa
 	and #$3f	; end of line (64 values/line)
 	bne l11f0
@@ -384,21 +399,21 @@ loop	; RAM 0200-7FFF
 	; test RAM with pattern check in memtest
 	.(
 	lda #$00
-	sta $21			; low ptr for memory test
+	sta ptr1		; low ptr for memory test
 
 	lda #$2a		; "*"
 	sta $8230		; start of line 7 = TEST RAM 0200-7FFF
 
 	; set screen ptr to where result will be printed
 	lda #$82
-	sta $2e			; scr ptr hi
+	sta scrptr+1		; scr ptr hi
 	lda #$4a
-	sta $2d			; scr ptr lo -> line 7, col 26 -> place for result
+	sta scrptr		; scr ptr lo -> line 7, col 26 -> place for result
 
 	lda #$0b		; start page
-	sta $28
+	sta memp1
 	lda #$7f		; end page
-	sta $29
+	sta memp1+1
 	; check the memory
 l1220	jsr memtest-offset	; l7ef
 	bne l122a
@@ -422,62 +437,62 @@ l122d	; clear "*" in front of test
 	sta $8280		; start of 8th line = TEST RAM 8000-8FFF
 
 	lda #$0b		; buffer hi
-	sta $24
+	sta ptr2+1
 
 	; set screen ptr to where result will be printed
 	lda #$82
-	sta $2e
+	sta scrptr+1
 	lda #$9a
-	sta $2d
+	sta scrptr
 
 	tya
-	sta $23			; buffer low
-	sta $20			; XOR (only $00/$ff are used)
+	sta ptr2		; buffer low
+	sta tmp1		; XOR (only $00/$ff are used)
 
 	lda #$80
-	sta $22			; scr ptr hi
+	sta ptr1+1		; scr ptr hi
 	lda #$00
-	sta $21			; scr ptr lo
+	sta ptr1		; scr ptr lo
 
 	; copy over screen RAM to buffer
-l1252	lda ($21),y
-	sta ($23),y
+l1252	lda (ptr1),y
+	sta (ptr2),y
 	iny
 	bne l1252
 
 	; store pattern in screen RAM
 l1259	clc
 	tya
-	adc $2a
-	eor $20
-	sta ($21),y
+	adc pattrn
+	eor tmp1
+	sta (ptr1),y
 	iny
 	bne l1259
 
 	; check pattern in screen RAM
 l1264	clc
 	tya
-	adc $2a
-	eor $20
-	eor ($21),y
+	adc pattrn
+	eor tmp1
+	eor (ptr1),y
 	bne l128d
 	iny
 	bne l1264
 
-	lda $20
+	lda tmp1
 	eor #$ff
-	sta $20
+	sta tmp1
 	bne l1259		; next XOR value
 
 	; copy screen RAM back from buffer
-l1279	lda ($23),y
-	sta ($21),y
+l1279	lda (ptr2),y
+	sta (ptr1),y
 	iny
 	bne l1279
 
 	; next screen page
-l1280	inc $22
-	lda $22
+l1280	inc ptr1+1
+	lda ptr1+1
 	cmp #$90
 	bne l1252
 
@@ -505,33 +520,33 @@ l1290	lda #$20
 	.(
 	; 8x96	
 l129c	lda #$00
-	sta $27			; block counter
+	sta blkno		; block counter
 
 	lda #$84
-	sta $24			; scr ptr hi for "*"
+	sta ptr2+1		; scr ptr hi for "*"
 	lda #$60
-	sta $23			; scr ptr lo for "*"
+	sta ptr2		; scr ptr lo for "*"
 
 	; loop for the four blocks
 l12a8	clc
 	adc #$1a
-	sta $2d			; store low ptr for result "OK"
+	sta scrptr		; store low ptr for result "OK"
 	lda #$00
-	adc $24
-	sta $2e			; scr ptr hi for result "OK"
+	adc ptr2+1
+	sta scrptr+1		; scr ptr hi for result "OK"
 
 	ldy #$00
 	lda #$2a		; "*"
-	sta ($23),y		; on screen
-	ldx $27
+	sta (ptr2),y		; on screen
+	ldx blkno
 	lda l1881-offset,x	; 8x96 config register
 	sta $fff0
 	lda l1885-offset,x	; start page of memory to test
-	sta $28
+	sta memp1
 	lda l1889-offset,x	; end page of memory to test
-	sta $29
+	sta memp1+1
 
-	inc $27
+	inc blkno
 	jsr memtest-offset	; l7ef
 	pha			; zero = ok, non-z = error
 
@@ -554,20 +569,20 @@ l12e1	jsr badbit-offset	; l7bf
 l12e6	jsr okout-offset	; l7db
 l12e9	ldy #$00
 	lda #$20		; clear "*"
-	sta ($23),y
+	sta (ptr2),y
 
 	; add 80 ($50) to scr ptr for next line
 	clc
 	lda #$50
-	adc $23
-	sta $23
+	adc ptr2
+	sta ptr2
 	tya
-	adc $24
-	sta $24
-	lda $27
+	adc ptr2+1
+	sta ptr2+1
+	lda blkno
 	cmp #$04		; are we done yet?
 	beq l1306		; yes
-l1301	lda $23
+l1301	lda ptr2
 	jmp l12a8-offset	; $0346
  	.)
 l1306
@@ -584,53 +599,53 @@ l1306
 	.(
 	; test by summing all memory locations
 	lda #$82
-	sta $2e			; result ptr hi,  line 8, col 66
+	sta scrptr+1		; result ptr hi,  line 8, col 66
 	lda #$c2
-	sta $2d			; result ptr lo
+	sta scrptr		; result ptr lo
 	lda #$2a
 	sta $82a8		; "*" for TEST KERNAL & BASIC
 
 	lda #$37		; ROM number in ASCII (UE7)
-	sta $25			; The 8296 indeed only has one 16 ROM for BASIC+KERNAL in UE7
+	sta cnt			; The 8296 indeed only has one 16 ROM for BASIC+KERNAL in UE7
 
 	lda #$b0		; start page
 l1319				; start of loop for 4k pages
 	pha			; save
 	lda #$10		; number of pages
 l131c				; continue loop for editor ROM
-	sta $20
+	sta tmp1
 
 	pla			; start page
 	pha
-	sta $22			; rom ptr hi
+	sta ptr1+1		; rom ptr hi
 	clc
-	adc $20
-	sta $24			; end page
+	adc tmp1
+	sta ptr2+1		; end page
 	lda #$00
-	sta $21			; rom ptr lo
-	sta $23
+	sta ptr1		; rom ptr lo
+	sta ptr2
 
 	; sum values from all ROM locations
 	tay
 	clc
-l132f	adc ($21),y
+l132f	adc (ptr1),y
 	iny
 	bne l132f
 	adc #$00		; add carry
 	pha			; save sum
 
-	inc $22			; next page
-	lda $22
-	eor $24			; end page (note: carry not modified)
+	inc ptr1+1		; next page
+	lda ptr1+1
+	eor ptr2+1		; end page (note: carry not modified)
 	beq l1343		; done
 
 	pla			; restore sum
 	jmp l132f-offset	; loop to add next page
 
 l1343	pla			; restore sum
-	sta $20			; calculated sum value
+	sta tmp1		; calculated sum value
 	pla			; restore start page
-	cmp $20			; compare with start page - this is the actual checksum check!
+	cmp tmp1		; compare with start page - this is the actual checksum check!
 	bne l1384		; not -> error
 
 l134b	clc
@@ -664,11 +679,11 @@ clrast2
 	jsr okout-offset	; Bug: should be above!
 #endif
 	lda #$82		; result pointer to TEST: ROM EDITOR
-	sta $2e
+	sta scrptr+1
 	lda #$72
-	sta $2d
+	sta scrptr
 
-	inc $25			; ROM number (UE8 for EDITOR ROM)
+	inc cnt			; ROM number (UE8 for EDITOR ROM)
 	lda #$e0		; start page
 	pha
 	lda #$08		; length of ROM
@@ -684,7 +699,7 @@ clrast	lda #$20		; clear "*"
 	; AC has start page on entry
 l1384	pha
 	ldy #$0a		; "BAD ROM: UE"
-	ldx $25			; ROM number
+	ldx cnt			; ROM number
 	jsr errout-offset
 	pla
 	cmp #$e0
@@ -705,9 +720,9 @@ l1395
 	; USER PORT
 	.(
 	lda #$83		; pointer to result on screen (USER PORT)
-	sta $2e
+	sta scrptr+1
 	lda #$b2
-	sta $2d
+	sta scrptr
 	lda #$2a
 	sta $8398		; "*" for USER PORT
 
@@ -741,9 +756,9 @@ l13c1	lda #$20
 	; IEEE 488 BUS
 	.(
 	lda #$83		; pointer to result on screen IEEE 488 BUS
-	sta $2e
+	sta scrptr+1
 	lda #$62
-	sta $2d
+	sta scrptr
 	lda #$2a
 	sta $8348		; "*" for IEEE 488 BUS
 
@@ -776,7 +791,7 @@ l13fa	ldy #$00		; running state
 l13fc	jsr setieee-offset	; l85e - set state of IEEE I/O
 	jsr chkieee-offset	; l833 - check state of IEEE I/O
 	tya
-	eor $20			; XOR target bit
+	eor tmp1		; XOR target bit
 	and #$f1		; check error bits
 	bne l1411
 l1409	iny			; next IEEE state
@@ -843,9 +858,9 @@ l1451	lda #$20
 	;
 	.(
 	lda #$42		; ptr to result on sct
-	sta $2d
+	sta scrptr
 	lda #$85
-	sta $2e
+	sta scrptr+1
 	lda #$2a
 	sta $8528		; "*" for 
 
@@ -856,12 +871,12 @@ l1451	lda #$20
 	sta $91
 
 	ldy #$00
-	sty $25			; trigger flag (changed on interrupt)
+	sty cnt			; trigger flag (changed on interrupt)
 	sty $e843		; DDRA all input (?)
-	sty $21			; 21/22 is counter snapshot stored during interrupt
-	sty $22
-	sty $23			; 23/24 is counter snapshot for 1st pass during 2nd pass
-	sty $24
+	sty ptr1		; 21/22 is counter snapshot stored during interrupt
+	sty ptr1+1
+	sty ptr2		; 23/24 is counter snapshot for 1st pass during 2nd pass
+	sty ptr2+1
 
 	lda #$60		; set memory configuration (disabled, memory+IO peek-through)
 	sta $fff0
@@ -877,50 +892,50 @@ l148c	cli
 				; IRQ does 25->21, YR->22
 				; 25/YR are a 16 bit counter that is stored into 21/22 during the interrupt
 	sei
-	lda $21
-	ora $22			; do we have data in 21/22 yet?
+	lda ptr1
+	ora ptr1+1		; do we have data in 21/22 yet?
 	bne l14a2		; yes - we had an interrupt
 
 	; no data yet
-	inc $25			; increase lo byte of counter (in $25)
+	inc cnt			; increase lo byte of counter (in $25/cnt)
 	bne l148c		; and loop
 	iny			; increase upper byte
 	bne l148c
 
 	; overflow in counter
-	lda $21
-	ora $22			; still no value in 21/22, i.e. no interrupt happened?
+	lda ptr1
+	ora ptr1+1		; still no value in 21/22, i.e. no interrupt happened?
 	beq l14d6		; output BAD
 
 	; we had an interrupt storing the counter into 21/22
-l14a2	lda $23
-	ora $24
+l14a2	lda ptr2
+	ora ptr2+1
 	bne l14b8		; we had 23/24 already, i.e. now is second iteration
 
-l14a8	lda $21			; save counter value into 1st pass
-	sta $23
-	lda $22
-	sta $24
+l14a8	lda ptr1		; save counter value into 1st pass
+	sta ptr2
+	lda ptr1+1
+	sta ptr2+1
 	lda #$00		; clear snapshot counter
-	sta $21
-	sta $22
+	sta ptr1
+	sta ptr1+1
 	beq l148c		; loop
 
 l14b8	; calculate difference between second and first pass
 	sec
-	lda $21			; take snapshot pass 2
-	sbc $23			; subtract snapshot pass 1
-	sta $21			; store in snapshot
-	lda $22
-	sbc $24
-	sta $22
+	lda ptr1		; take snapshot pass 2
+	sbc ptr2		; subtract snapshot pass 1
+	sta ptr1		; store in snapshot
+	lda ptr1+1
+	sbc ptr2+1
+	sta ptr1+1
 
 	; compare difference with target value of $0386-$0387 = 902-903
 	; (which implies that a loop is around 22 cycles avg.)
 
 	cmp #$03		; hi byte difference is 3?
 	bne l14d6		; no, then error
-	lda $21			; low byte is #$86 or #$87?
+	lda ptr1		; low byte is #$86 or #$87?
 	and #$fe
 	cmp #$86
 	bne l14d6		; no then error
@@ -947,9 +962,9 @@ l14dd	lda #$20		; clear "*"
 	; loops (cycles) until interrupt happens
 	.(
 	lda #$a2		; result ptr on screen TIMER 1
-	sta $2d			
+	sta scrptr
 	lda #$84
-	sta $2e
+	sta scrptr+1
 	lda #$2a
 	sta $8488		; "*" for TIMER 1
 
@@ -959,10 +974,10 @@ l14dd	lda #$20		; clear "*"
 	sta $e84e		; enable T1 interrupt
 
 	ldy #$00		; initialize 25/YR timer
-	sty $25
+	sty cnt
 
-	sty $21			; initialize timer snapshot
-	sty $22
+	sty ptr1		; initialize timer snapshot
+	sty ptr1+1
 
 	; set timer to $8080
 	lda #$80
@@ -978,7 +993,7 @@ l1511	cli
 	bvs l1529		; yes, T1 interrupt
 
 	; increase 25/YR counter
-	inc $25
+	inc cnt
 	bne l1511
 	iny
 	bne l1511
@@ -990,10 +1005,10 @@ l1520	lda #$0d		; invisible
 	bne l1538
 
 	; compare with target value $066c
-l1529	lda $22
+l1529	lda ptr1+1
 	cmp #$06
 	bne l1520
-	lda $21
+	lda ptr1
 	cmp #$6c
 	bne l1520
 
@@ -1012,9 +1027,9 @@ l1538	lda #$20		; clear "*"
 	; loops (cycles) until interrupt happens
 	.(
 	lda #$f2		; result ptr on screen for TIMER 2
-	sta $2d
+	sta scrptr
 	lda #$84
-	sta $2e
+	sta scrptr+1
 	lda #$2a		
 	sta $84d8		; "*" for TIMER 2
 
@@ -1024,10 +1039,10 @@ l1538	lda #$20		; clear "*"
 	sta $e84e		; enable T2 interrupt
 
 	ldy #$00		; initialize 25/YR counter
-	sty $25
+	sty cnt
 	
-	sty $21			; initialize counter snapshot
-	sty $22
+	sty ptr1		; initialize counter snapshot
+	sty ptr1+1
 
 	lda #$80		; set T2 to $8080
 	sta $e848		; T2L latch
@@ -1042,7 +1057,7 @@ l1564	cli
 	bne l157d		; yes, had an interrupt
 
 	; increase counter
-	inc $25
+	inc cnt
 	bne l1564
 	iny
 	bne l1564
@@ -1054,10 +1069,10 @@ l1574	lda #$0d
 	bne l158c
 
 	; compare counter snapshot from interrupt with target $066c
-l157d	lda $22
+l157d	lda ptr1+1
 	cmp #$06
 	bne l1574
-	lda $21
+	lda ptr1
 	cmp #$6c
 	bne l1574
 
@@ -1081,40 +1096,40 @@ l1598	jmp l1661-offset	; no, skip
 
 	; we have an 8x96
 l159b	lda #$ba		; result ptr on screen for FPLA II
-	sta $2d
+	sta scrptr
 	lda #$85
-	sta $2e
+	sta scrptr+1
 	lda #$2a
 	sta $85a0		; "*" for FPLA 2
 
 	lda #$80
 l15aa	sta $fff0		; enable 8x96 mapping
 
-	sta $25			; store tmp
+	sta cnt			; store tmp
 	and #$84		; lower block select
 	clc
 	adc #$b0		; results in either $30 or $34
 	sta $b000		; last 4k page of lower mapped block
 
-	lda $25			; tmp
+	lda cnt			; tmp
 	and #$88		; upper block select
 	clc
 	adc #$c0		; results in either $40 or $44
 	sta $c000		; first 4k page of upper mapped block
 
-	lda $25
+	lda cnt
 	eor #$0c		; change both block selects
 	cmp #$80		; are we through yet with both values?
 	bne l15aa		; no, loop
 
-	sta $25			; store #$80 in tmp as start value
+	sta cnt			; store #$80 in tmp as start value
 l15cb	sta $fff0		; set block config
 
 	and #$10
 	bne l1640		; if bit 4 (reserved) is set, skip test
 
 	; check lower block
-	lda $25
+	lda cnt
 	and #$84
 	clc
 	adc #$b0
@@ -1122,7 +1137,7 @@ l15cb	sta $fff0		; set block config
 	bne l1650		; error
 
 	; check upper block
-	lda $25
+	lda cnt
 	and #$88
 	clc
 	adc #$c0
@@ -1131,15 +1146,15 @@ l15cb	sta $fff0		; set block config
 
 	; check I/O peekthrough
 	; Note: e84f in mapped block has been set above to #$55
-	lda $25
+	lda cnt
 	and #$40		; do we have I/O peek through?
 	beq l1604		; no then skip
 
-	eor $25			; disable mapping
+	eor cnt			; disable mapping
 	sta $fff0
 	lda $e84f		; load VIA port A
 	pha
-	lda $25			; enable mapping
+	lda cnt			; enable mapping
 	sta $fff0
 	pla
 	eor $e84f		; compare VIA port A
@@ -1147,22 +1162,22 @@ l15cb	sta $fff0		; set block config
 
 	; check screen peekthrough
 	; note: 85a0 has been set to #$55 above in BLOCK test
-l1604	lda $25
+l1604	lda cnt
 	and #$20		; do we have screen peek through?
 	beq l161e		; no then skip
 
-	eor $25
+	eor cnt
 	sta $fff0		; disable mapping 
 	lda $85a0		; load screen location value
 	pha
-	lda $25
+	lda cnt
 	sta $fff0		; enable mapping
 	pla
 	eor $85a0		; compare
 	beq l1650		; same then BAD
 
 	; check write protect lower block
-l161e	lda $25
+l161e	lda cnt
 	and #$01		; do we have write protect?
 	beq l1630		; no, then skip
 
@@ -1173,7 +1188,7 @@ l161e	lda $25
 	beq l1650		; same - write was successful -> BAD
 
 	; check write protect upper block
-l1630	lda $25
+l1630	lda cnt
 	and #$02		; do we have write protect?
 	beq l1640		; no then skip
 
@@ -1183,8 +1198,8 @@ l1630	lda $25
 	beq l1650		; same - write was successful -> BAD
 
 	; next configuration value
-l1640	inc $25
-	lda $25			; are we done yet?
+l1640	inc cnt
+	lda cnt			; are we done yet?
 	bne l15cb		; no, loop
 
 	; disable mapping, OK
@@ -1205,32 +1220,32 @@ l165c	lda #$20
 	.)
 
 l1661	clc
-	inc $2a
+	inc pattrn
 
 	; increase cycles counter (in decimal mode)
 	sed
 	lda #$01
-	adc $33
-	sta $33
+	adc cycles
+	sta cycles
 	lda #$00
-	adc $34
-	sta $34
+	adc cycles+1
+	sta cycles+1
 	lda #$00
-	adc $35
-	sta $35
+	adc cycles+2
+	sta cycles+2
 	cld
 
 	; print cycle counter on screen
 	lda #$80		; scr pointer
-	sta $2e
+	sta scrptr+1
 	lda #$3c
-	sta $2d
+	sta scrptr
 
 	lda #$80		; REV flag
-	sta $32
+	sta revfl
 
 	ldx #$02
-l1686	lda $33,x
+l1686	lda cycles,x
 	jsr hexout-offset	; l72f
 	dex
 	bpl l1686
@@ -1258,40 +1273,40 @@ l16a2	adc #$30
 	; chrout
 chrout	.(
 	pha			; save char
-	sty $20			; save YR
+	sty tmp1		; save YR
 
 	cmp #$93		; clear screen
 	bne l16df
 
 	; clear screen
-l16ab	lda $2c			; set ptr to start of screen
-	sta $2e
-	lda $2b
-	sta $2d
+l16ab	lda screen+1		; set ptr to start of screen
+	sta scrptr+1
+	lda screen
+	sta scrptr
 l16b3	ldy #$00
 	lda #$20
-l16b7	sta ($2d),y
+l16b7	sta (scrptr),y
 	iny
-	cpy $31			; number of columns
+	cpy cols		; number of columns
 	bne l16b7
 l16be	clc
-	lda $2d
+	lda scrptr
 	adc #$50		; plus 80 for next line
-	sta $2d
-	lda $2e
+	sta scrptr
+	lda scrptr+1
 	adc #$00
-	sta $2e
+	sta scrptr+1
 	cmp #$88		; are we done?
 	bcc l16b3		; no, loop
 
-l16cf	lda $2c			; scr ptr to start of screen
-	sta $2e			; scr ptr
-	sta $30			; start of line
-	lda $2b
-	sta $2d			; scr ptr
-	sta $2f			; start of line
+l16cf	lda screen+1		; scr ptr to start of screen
+	sta scrptr+1		; scr ptr
+	sta lineptr+1		; start of line
+	lda screen
+	sta scrptr		; scr ptr
+	sta lineptr		; start of line
 
-l16db	ldy $20			; restore Y
+l16db	ldy tmp1		; restore Y
 	pla			; restore AC
 	rts
 
@@ -1304,15 +1319,15 @@ l16df	cmp #$13
 
 	; carriage return
 l16e7	clc
-	lda $2f			; start of line ptr
+	lda lineptr		; start of line ptr
 	adc #$50		; plus 80
-	sta $2d			; to scr ptr
-	sta $2f			; and new start of line
+	sta scrptr		; to scr ptr
+	sta lineptr		; and new start of line
 	lda #$00		; clr REV flag
-	sta $32
-	adc $30
-	sta $2e			; scr ptr hi
-	sta $30			; start of line hi
+	sta revfl
+	adc lineptr+1
+	sta scrptr+1		; scr ptr hi
+	sta lineptr+1		; start of line hi
 	bne l16db
 
 	
@@ -1324,7 +1339,7 @@ l1702	pla			; restore char
 	pha
 	and #$80
 	eor #$80
-	sta $32			; store REV flag
+	sta revfl		; store REV flag
 	clv
 	bvc l16db
 
@@ -1334,11 +1349,11 @@ l170d	and #$7f
 
 	; store char on screen
 l1713	ldy #$00
-	eor $32			; REV flag
-	sta ($2d),y
-	inc $2d			; in scr ptr
+	eor revfl		; REV flag
+	sta (scrptr),y
+	inc scrptr		; in scr ptr
 	bne l16db
-l171d	inc $2e
+l171d	inc scrptr+1
 	bne l16db
 	.)
 
@@ -1369,11 +1384,12 @@ l1734	pla
 	jmp chrout-offset	; l742
 
 	; output OK
+	; only in first cycle, don't overwrite potential errors in later cycles
 okout	ldy #$00
-	lda $33
-	ora $34
-	ora $35
-	bne l1750
+	lda cycles
+	ora cycles+1
+	ora cycles+2
+	bne l1750		; only in first cycle
 l1747	lda okstr-offset,y	; l8f5,y
 	iny
 	jsr chrout-offset	; l742
@@ -1386,47 +1402,47 @@ l1750	rts
 memtest	.(
 	ldy #$00
 	tya
-l1754	sta $20			; XOR counter (only $00, $ff are used)
-	lda $28			; start page
-	sta $22			; actual ptr hi
+l1754	sta tmp1		; XOR counter (only $00, $ff are used)
+	lda memp1		; start page
+	sta ptr1+1		; actual ptr hi
 l175a	clc
 	tya			; index in page
-	adc $22			; add page number
-	adc $2a			; add ???
-	eor $20			; XOR counter
-	sta ($21),y
+	adc ptr1+1		; add page number
+	adc pattrn		; add ???
+	eor tmp1		; XOR counter
+	sta (ptr1),y
 
 	iny
 	bne l175a		; next byte
 
-	lda $22
-	cmp $29			; end page
+	lda ptr1+1
+	cmp memp1+1		; end page
 	beq l1771
 
-	inc $22			; next page
+	inc ptr1+1		; next page
 	bne l175a
 
 	; check pattern
-l1771	lda $28
-	sta $22
+l1771	lda memp1
+	sta ptr1+1
 l1775	clc
 	tya
-	adc $22
-	adc $2a
-	eor $20
-	eor ($21),y
+	adc ptr1+1
+	adc pattrn
+	eor tmp1
+	eor (ptr1),y
 	bne l1794		; wrong value
 	iny
 	bne l1775		; next byte
 
-	lda $22
-	cmp $29			; end page
+	lda ptr1+1
+	cmp memp1+1		; end page
 	beq l178e		; is last page?
 
-	inc $22			; next page
+	inc ptr1+1		; next page
 	bne l1775
 
-l178e	lda $20
+l178e	lda tmp1
 	eor #$ff		; is XOR through?
 	bne l1754		; no, try next
 l1794	rts
@@ -1437,12 +1453,12 @@ l1794	rts
 chkieee	.(
 	lda $e840	; VIA PB
 	and #$c1	; 7=DAVin, 6=NRFDin, 0=NDACin
-	sta $20
+	sta tmp1
 	lda $e810	; PIA1 PA, PA6=EOIin
 	lsr
 	and #$20	; 5=EOIin
-	ora $20
-	sta $20
+	ora tmp1
+	sta tmp1
 	lda $e821	; PIA2 CRA, check ATN int
 	and #$02
 	eor #$02
@@ -1457,8 +1473,8 @@ chkieee	.(
 	lsr
 	lsr
 	and #$10	; 4= ATN
-	ora $20
-	sta $20
+	ora tmp1
+	sta tmp1
 	rts
 	.)
 
@@ -1498,7 +1514,7 @@ l17e8	sta $e811	; PIA1 CRA -> EOI out
 	plp
 	beq l17f6
 l17f4	ora #$08	; or high
-l17f6	sta $25		; target CRA value for NDAC
+l17f6	sta cnt		; target CRA value for NDAC
 
 	tya
 	and #$10	; shall we set ATN?
@@ -1516,7 +1532,7 @@ l1806	sta $e840	; set ATN to opposite value
 	lsr
 	lsr
 	lsr		; shift into bit1, selecting CA1 pos/neg edge
-	ora $25		; or that with the NDAC target
+	ora cnt		; or that with the NDAC target
 	sta $e821	; set NDAC and ATN detection
 
 	lda $e840
@@ -1530,7 +1546,7 @@ l181f	sta $e840	; ... so we are sure we trigger in IRQ edge
 
 	; ---------------------
 	; used in the TIMER?
-l1823	sta $2d
+l1823	sta scrptr
 	jsr memtest-offset	; l7ef
 	beq l182f
 l182a	jsr badbit-offset	; l7bf
@@ -1551,9 +1567,9 @@ irq	.(
 	lda $0104,x		
 	ora #$04		; set I bit in status on the stack, basically SEI
 	sta $0104,x
-	lda $25
-	sta $21
-	sty $22			; y leaks through from main program
+	lda cnt
+	sta ptr1
+	sty ptr1+1		; y leaks through from main program
 	pla
 	tay
 	pla
