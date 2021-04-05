@@ -1,0 +1,56 @@
+	
+test_timer1:
+	; ----------------------------------
+	; TIMER 1
+	; 
+	; Test by setting timer to $8080 and counting
+	; loops (cycles) until interrupt happens
+	.(
+	lda #$7f
+	sta $e84e		; disable all VIA interrupts
+	lda #$c0
+	sta $e84e		; enable T1 interrupt
+
+	ldy #$00		; initialize 25/YR timer
+	sty cnt
+
+	sty ptr1		; initialize timer snapshot
+	sty ptr1+1
+
+	; set timer to $8080
+	lda #$80
+	sta $e844		; T1L low byte latch
+	sta $e845		; T1H high byte counter, start timer
+
+	; enable interrupt
+	; interrupt routine (set in 50HZ test) transfers 25/YR to 21/22
+l1511	cli
+	nop
+	sei
+	bit $e84d		; did we have an interrupt?
+	bvs l1529		; yes, T1 interrupt
+
+	; increase 25/YR counter
+	inc cnt
+	bne l1511
+	iny
+	bne l1511
+
+	; overflow
+l1520	lda #$0d		; invisible
+	ldy #$16		; "BAD"
+	jmp badout-offset	; 
+
+	; compare with target value $066c
+l1529	lda ptr1+1
+	cmp #$06
+	bne l1520
+	lda ptr1
+	cmp #$6c
+	bne l1520
+
+	; ok
+	jmp okout-offset	; l7db
+	.)
+
+

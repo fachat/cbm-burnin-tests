@@ -1,0 +1,75 @@
+
+	; ------------------------------
+	; VRAM 
+	; test RAM with pattern check in memtest
+test_vmem:
+	.(
+	sta memp1		; start page - parameter
+
+	; set MMU mapping	
+	lsr
+	lsr
+	lsr
+	lsr
+	ora #$10		; VDC memory offset
+	tay
+	sty $eff4
+	cpy $eff4
+	bne badmmu
+	iny
+	sty $eff5
+	iny
+	sty $eff6
+	iny
+	sty $eff7
+
+	; translate physical to logical addr
+	lda memp1
+	and #$3f
+	ora #$40
+	sta memp1
+
+	txa
+	clc
+	adc memp1
+	sta memp1+1		; end page
+
+	; check the memory
+l1220	jsr memtest-offset	; l7ef
+	bne l122a
+
+	; ok, no error
+	jsr okout-offset	; l7db
+	bne end
+
+badmmu 	
+	lda #$12
+	jsr chrout-offset
+	lda #"M"
+	jsr chrout-offset
+	jsr chrout-offset
+	lda #"U"
+	jsr chrout-offset
+	lda #" "
+	jsr chrout-offset
+	ldy #$16
+	lda #13
+	jsr badout-offset
+	bne end
+
+l122a	jsr badbit-offset	; l7bf
+
+end	; reset MMU
+	ldy #4
+	sty $eff4
+	iny
+	sty $eff5
+	iny
+	sty $eff6
+	iny
+	sty $eff7
+
+	rts
+	.)
+
+

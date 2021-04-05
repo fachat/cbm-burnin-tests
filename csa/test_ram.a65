@@ -1,0 +1,24 @@
+
+	; ------------------------------
+	; RAM 0200-7FFF
+	; test RAM with pattern check in memtest
+test_ram:
+	.(
+	ldy #$00
+	sty ptr1		; low ptr for memory test
+
+	;lda #$0b		; start page - param
+	sta memp1
+	;lda #$7f		; end page - param
+	stx memp1+1
+	; check the memory
+l1220	jsr memtest-offset	; l7ef
+	bne l122a
+
+	; ok, no error
+	jmp okout-offset	; l7db
+
+l122a	jmp badbit-offset	; l7bf
+	.)
+
+

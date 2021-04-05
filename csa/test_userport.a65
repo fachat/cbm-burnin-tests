@@ -1,0 +1,22 @@
+
+test_userp:
+	; --------------------------
+	; USER PORT
+	.(
+	ldy #$ff
+	sty $e843		; DDRA port A all out
+l13a7	sty $e841		; ORA write value
+	beq l13be		; end
+l13ac	cpy $e84f		; compare on IRA (mirror without handshake)
+	bne l13b5		; error
+l13b1	dey			; next value
+	jmp l13a7-offset	; loop
+
+l13b5	ldy #$16		; "BAD" text
+	lda #$0d		; invisible char after BAD
+	jmp badout-offset	; l7c8
+
+l13be	jmp okout-offset	; l7db
+	.)
+
+

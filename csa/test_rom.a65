@@ -1,0 +1,97 @@
+	
+	; ------------------------------
+	; KERNAL & BASIC, EDITOR
+	;
+	; the following routine loops over 4k pages,
+	; skipping over the editor. Then switches to the
+	; editor, returns to the loop and uses a different
+	; exit to exit the whole routine
+
+test_rom:
+	.(
+	; test by summing all memory locations
+
+	;lda #$b0		; start page - as parameter from caller
+
+l1319				; start of loop for 4k pages
+	pha			; save
+	cmp #$e0
+	beq short
+	lda #$10		; number of pages = 16
+	.byt $2c
+short	lda #$08		; EDITOR has 8 pages only
+
+l131c				; continue loop for editor ROM
+	sta tmp1
+
+	pla			; start page
+	pha
+	sta ptr1+1		; rom ptr hi
+	clc
+	adc tmp1
+	sta ptr2+1		; end page
+	lda #$00
+	sta ptr1		; rom ptr lo
+	sta ptr2
+
+	; sum values from all ROM locations
+	tay
+	clc
+l132f	adc (ptr1),y
+	iny
+	bne l132f
+	adc #$00		; add carry
+	pha			; save sum
+
+	inc ptr1+1		; next page
+	lda ptr1+1
+	eor ptr2+1		; end page (note: carry not modified)
+	beq l1343		; done
+
+	pla			; restore sum
+	jmp l132f-offset	; loop to add next page
+
+l1343	pla			; restore sum
+	sta tmp1		; calculated sum value
+	pla			; restore start page
+	cmp tmp1		; compare with start page - this is the actual checksum check!
+	bne l1384		; not -> error
+
+l134b	dex			; XR is param from caller
+	beq l137a
+
+	clc
+	adc #$10		; add $10 to start page (next 4k)
+	beq l137a		; overflow -> end
+
+	cmp #$f0		; check is for pass on editor ROM
+	beq l137a		; Editor ROM done 
+
+	cmp #$e0		; $exxx?
+	bne l1319		; no, then continue loop over 4k pages
+	lda #$f0		; check kernal instead, i.e. skip editor ROM
+	bne l1319
+
+	; editor ROM is done
+l137a	jsr okout-offset	; l7db
+clrast	rts
+
+	; error in check
+	; AC has start page on entry
+l1384	; convert page number to ASCII
+	lsr
+	lsr
+	lsr
+	lsr
+	cmp #$0a
+	bcc lx
+	adc #$06
+lx	adc #$30
+	tax
+	ldy #$0a		; "BAD ROM: UE"
+	;ldx cnt		; ROM number
+	jmp errout-offset
+	.)
+
+
+

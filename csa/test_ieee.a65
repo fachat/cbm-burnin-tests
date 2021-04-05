@@ -1,0 +1,213 @@
+
+test_ieee:
+	;---------------------------------------
+	; IEEE 488 BUS
+	.(
+	; init IEEE488
+
+	lda #$00
+	tay
+	sta $e823	; PIA2 CRB (DAV out, SRQ in) - access DDRB
+	sta $e821	; PIA2 CRA (NDAC out, ATN in) - access DDRA
+	sta $e820	; PIA2 PA to input (IEEE data in)
+	lda #$ff
+	sta $e822	; PIA2 PB to output (IEEE data out)
+	lda #$34
+	sta $e823	; PIA2 CRB, access DRB, CB2 low, CB1 input
+	sta $e821	; PIA2 CRA, access DRA, CA2 low, CA1 input
+
+	; check IEEE488
+
+	; 1st test: data bits
+	; loop data values on IEEE data out (start with Y=0)
+l13ee	sty $e822	; PIA2 IEEE data out
+	nop
+	cpy $e820	; check IEEE data in
+	bne l1446	; not equal -> error
+l13f7	iny
+	bne l13ee
+
+	; 2nd test: iterate control lines
+l13fa	ldy #$00		; running state
+l13fc	jsr setieee-offset	; l85e - set state of IEEE I/O
+	jsr chkieee-offset	; l833 - check state of IEEE I/O
+	tya
+	eor tmp1		; XOR target bit
+	and #$f1		; check error bits
+	bne l1411
+l1409	iny			; next IEEE state
+	bne l13fc
+l140c	jsr okout-offset	; l7db
+	bne l1451
+
+	; error in IEEE
+	; convert state bits to error number
+l1411	ldx #$08
+l1413	asl
+	beq l1419
+l1416	dex
+	bpl l1413
+
+l1419	ldy #$00
+	cpx #$07
+	beq l140c		; error 7 is OK (NRFD?)
+
+l141f	lda #$12		; REV output
+	jsr chrout-offset	; l742
+
+	; search for correct string through list of nul-terminated strings
+l1424	lda ieeestr-offset,y	; l92b,y
+	iny
+	cmp #$00
+	bne l1424
+l142c	dex
+	bne l1424
+	; output error string
+l142f	lda ieeestr-offset,y	; l92b,y
+	beq l143a
+l1434	jsr chrout-offset	; l742
+	iny
+	bne l142f
+
+l143a	lda #$20
+	jsr chrout-offset	; l742
+	ldy #$16		; "BAD"
+	jsr badout-offset	; l7c8
+	bne l1451
+
+	; entry on data error on IEEE init
+l1446	tya
+	eor $e820
+	ldy #$1a		; "IEEE BAD IO"
+	ldx #$39
+	jsr badbit2-offset	; l7c3
+
+l1451	rts
+
+
+	; --------------------------------
+	; gather state of the IEEE 488 bus
+chkieee	.(
+	lda $e840	; VIA PB
+	and #$c1	; 7=DAVin, 6=NRFDin, 0=NDACin
+	sta tmp1
+	lda $e810	; PIA1 PA, PA6=EOIin
+	lsr
+	and #$20	; 5=EOIin
+	ora tmp1
+	sta tmp1
+	lda $e821	; PIA2 CRA, check ATN int
+	and #$02
+	eor #$02
+	asl
+	asl
+	asl
+	asl
+	asl
+	asl
+	eor $e821
+	lsr
+	lsr
+	lsr
+	and #$10	; 4= ATN
+	ora tmp1
+	sta tmp1
+	rts
+	.)
+
+	; set the state of the IEEE488 bus
+setieee	.(
+	tya
+	and #$80	; shall we set DAV?
+	php		; remember
+	lda #$1e	; 4=Cass Mtr out, 3=Cass write, 2=ATNout, 1=NRFD out, 0=NDACout
+	sta $e842	; VIA DDRB
+
+	lda #$34	; DAV low
+	plp
+	beq l17d0
+l17ce	ora #$08	; set CA2 out hi (DAV)
+l17d0	sta $e823	; PIA2 CRB
+
+	tya
+	and #$40	; shall we set NRFD?
+	beq l17da
+l17d8	lda #$02	; NRFD 
+l17da	sta $e840	; set 
+
+	tya
+	and #$20	; shall we set EOI?
+	php
+	lda #$34	; CA2 low
+	plp
+	beq l17e8
+l17e6	ora #$08	; or high
+l17e8	sta $e811	; PIA1 CRA -> EOI out
+
+	tya
+	and #$01	; shall we set NDAC?
+	php
+	lda #$34	; CA2 low
+	plp
+	beq l17f6
+l17f4	ora #$08	; or high
+l17f6	sta cnt		; target CRA value for NDAC
+
+	tya
+	and #$10	; shall we set ATN?
+	php
+	lda $e840
+	and #$fb
+	plp
+	bne l1806
+l1804	ora #$04
+l1806	sta $e840	; set ATN to opposite value
+
+	tya
+	and #$10	; shall we set ATN?
+	php
+	lsr
+	lsr
+	lsr		; shift into bit1, selecting CA1 pos/neg edge
+	ora cnt		; or that with the NDAC target
+	sta $e821	; set NDAC and ATN detection
+
+	lda $e840
+	and #$fb	; set ATN bit...
+	plp
+	beq l181f	; ... to correct value ...
+l181d	ora #$04
+l181f	sta $e840	; ... so we are sure we trigger in IRQ edge
+	rts
+	.)
+
+        ; ---------------------
+        ; IEEE error texts
+ieeestr
+        .byt $00,
+        ; error 1
+        .byt "ND"               ; $4e,$44
+        .byt "AC",0             ; $41,$43,$00
+        ; error 2
+        .byt $00,
+        ; error 3
+        .byt $00
+        ; error 4
+        .byt $00
+        ; error 5
+        .byt "ATN"              ; $41,$54,$4e
+        .byt $00
+        ; error 6
+        .byt "EO"               ; $45,$4f
+        .byt "I",0
+        ; error 7
+        .byt "N"                ; $49,$00,$4e
+        .byt "RFD"              ; $52,$46,$44
+        .byt $00
+        ; error 8
+        .byt "DA"               ; $44,$41
+        .byt "V",0
+
+	.)
+
+

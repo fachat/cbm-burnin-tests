@@ -1,0 +1,77 @@
+
+test_screenmem:
+	; ------------------------------
+	; RAM 8000-8FFF (Screen)
+	; test 
+	.(
+
+	lda #>(endofprg+255)	; #$0b		; buffer hi
+	sta ptr2+1
+
+	ldy #$00
+	tya
+	sta ptr2		; buffer low
+	sta tmp1		; XOR (only $00/$ff are used)
+	sta ptr1		; scr ptr lo
+
+	lda #$80
+	sta ptr1+1		; scr ptr hi
+
+	txa
+	clc
+	adc ptr1+1
+mloop	pha
+
+	; copy over screen RAM to buffer
+l1252	lda (ptr1),y
+	sta (ptr2),y
+	iny
+	bne l1252
+
+	; store pattern in screen RAM
+l1259	clc
+	tya
+	adc pattrn
+	eor tmp1
+	sta (ptr1),y
+	iny
+	bne l1259
+
+	; check pattern in screen RAM
+l1264	clc
+	tya
+	adc pattrn
+	eor tmp1
+	eor (ptr1),y
+	bne l128d
+	iny
+	bne l1264
+
+	lda tmp1
+	eor #$ff
+	sta tmp1
+	bne l1259		; next XOR value
+
+	; copy screen RAM back from buffer
+l1279	lda (ptr2),y
+	sta (ptr1),y
+	iny
+	bne l1279
+
+	; next screen page
+l1280	inc ptr1+1
+	pla
+	cmp ptr1+1
+	beq l1288
+	jmp mloop-offset
+
+	; OK
+l1288	jmp okout-offset	; l7db
+
+	; error 
+l128d	jsr badbit-offset	; l7bf
+	pla
+	rts
+	.)
+
+

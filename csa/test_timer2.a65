@@ -1,0 +1,55 @@
+	
+test_timer2:
+	; ----------------------------------
+	; TIMER 2
+	; 
+	; Test by setting timer to $8080 and counting
+	; loops (cycles) until interrupt happens
+	.(
+	lda #$7f
+	sta $e84e		; disable all VIA interrupts
+	lda #$a0
+	sta $e84e		; enable T2 interrupt
+
+	ldy #$00		; initialize 25/YR counter
+	sty cnt
+	
+	sty ptr1		; initialize counter snapshot
+	sty ptr1+1
+
+	lda #$80		; set T2 to $8080
+	sta $e848		; T2L latch
+	sta $e849		; T2H counter, start timer
+
+	; enable interrupt
+	; interrupt routine copies 25/YR to 21/22
+l1564	cli
+	lda $e84d		; load IFR
+	sei
+	and #$20		; check T2 interrupt
+	bne l157d		; yes, had an interrupt
+
+	; increase counter
+	inc cnt
+	bne l1564
+	iny
+	bne l1564
+
+	; overflow
+l1574	lda #$0d
+	ldy #$16		; "BAD"
+	jmp badout-offset	; l7c8
+
+	; compare counter snapshot from interrupt with target $066c
+l157d	lda ptr1+1
+	cmp #$06
+	bne l1574
+	lda ptr1
+	cmp #$6c
+	bne l1574
+
+	; ok
+l1589	jmp okout-offset	; l7db
+	.)
+
+

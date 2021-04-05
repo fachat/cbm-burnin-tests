@@ -1,0 +1,54 @@
+
+	; --------------------------------------
+	; test memory
+	; set with pattern
+memtest	.(
+	ldy #$00
+	sty ptr1
+	tya
+l1754	sta tmp1		; XOR counter (only $00, $ff are used)
+	lda memp1		; start page
+	sta ptr1+1		; actual ptr hi
+l175a	clc
+	tya			; index in page
+	adc ptr1+1		; add page number
+	adc pattrn		; add ???
+	eor tmp1		; XOR counter
+	sta (ptr1),y
+	iny
+	bne l175a		; next byte
+
+	lda ptr1+1
+	cmp memp1+1		; end page
+	beq l1771
+
+	inc ptr1+1		; next page
+	bne l175a
+
+	; check pattern
+l1771	lda memp1
+	sta ptr1+1
+l1775	clc
+	tya
+	adc ptr1+1
+	adc pattrn
+	eor tmp1
+	eor (ptr1),y
+	bne l1794		; wrong value
+	iny
+	bne l1775		; next byte
+
+	lda ptr1+1
+	cmp memp1+1		; end page
+	beq l178e		; is last page?
+
+	inc ptr1+1		; next page
+	bne l1775
+
+l178e	lda tmp1
+	eor #$ff		; is XOR through?
+	bne l1754		; no, try next
+l1794	rts
+	.)
+
+

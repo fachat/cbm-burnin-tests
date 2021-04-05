@@ -1,0 +1,108 @@
+	
+	; -----------------------------
+	; hexout
+hexout	.(
+	pha
+	lsr
+	lsr
+	lsr
+	lsr
+	jsr l169a-offset	; l738
+	pla
+l169a	and #$0f
+	cmp #$0a
+	bcc l16a2
+	adc #$06
+l16a2	adc #$30
+	.)
+	; fall through
+
+	; -----------------------------
+	; chrout
+chrout	.(
+	pha			; save char
+	sty tmp1		; save YR
+
+	cmp #$93		; clear screen
+	bne l16df
+
+	; clear screen
+l16ab	lda screen+1		; set ptr to start of screen
+	sta scrptr+1
+	lda screen
+	sta scrptr
+l16b3	ldy #$00
+	lda #$20
+l16b7	sta (scrptr),y
+	iny
+	cpy cols		; number of columns
+	bne l16b7
+l16be	clc
+	lda scrptr
+	adc #$50		; plus 80 for next line
+	sta scrptr
+	lda scrptr+1
+	adc #$00
+	sta scrptr+1
+	cmp #$88		; are we done?
+	bcc l16b3		; no, loop
+
+l16cf	lda screen+1		; scr ptr to start of screen
+	sta scrptr+1		; scr ptr
+	sta lineptr+1		; start of line
+	lda screen
+	sta scrptr		; scr ptr
+	sta lineptr		; start of line
+
+l16db	ldy tmp1		; restore Y
+	pla			; restore AC
+	rts
+
+	; other screen codes
+l16df	cmp #$13
+	beq l16cf		; HOME
+
+	cmp #$0d		; CR
+	bne l16fc
+
+	; carriage return
+l16e7	clc
+	lda lineptr		; start of line ptr
+	adc #$50		; plus 80
+	sta scrptr		; to scr ptr
+	sta lineptr		; and new start of line
+	lda #$00		; clr REV flag
+	sta revfl
+	adc lineptr+1
+	sta scrptr+1		; scr ptr hi
+	sta lineptr+1		; start of line hi
+	bne l16db
+
+	
+l16fc	and #$7f
+	cmp #$12		; REV
+	bne l170d
+
+l1702	pla			; restore char
+	pha
+	and #$80
+	eor #$80
+	sta revfl		; store REV flag
+	clv
+	bvc l16db
+
+l170d	and #$7f
+	cmp #$20		; SPC
+	bcc l16db		; lower, i.e. unprintable -> ignore
+
+	; store char on screen
+l1713	ldy #$00
+	eor revfl		; REV flag
+	sta (scrptr),y
+	inc scrptr		; in scr ptr
+	bne l16db
+l171d	inc scrptr+1
+	bne l16db
+	.)
+
+

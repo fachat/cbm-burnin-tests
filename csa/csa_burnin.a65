@@ -1,0 +1,763 @@
+	
+
+#undef	FIX
+
+tmp1	= $20			; general temp value for XOR, or adding
+ptr1	= $21			; general pointer / 16 bit counter
+ptr2	= $23			; general pointer / 16 bit counter
+cnt	= $25			; general 8 bit counter
+;	= $26
+blkno	= $27			; block number for 8x96 test
+memp1	= $28			; memory test pointer
+pattrn	= $2a			; memory test pattern; will be increased each cycle (starts initialized by zp mem test)
+screen	= $2b			; start of screen ptr
+scrptr	= $2d			; current screen pointer
+lineptr	= $2f			; start of current line
+cols	= $31			; number of columns
+revfl	= $32			; reverse flag
+cycles	= $33			; 3 byte cycle counter
+
+testp	= $36			; pointer to current test
+
+	.word $0400
+	* = $0400
+
+	.byt 0
+	.word link
+	.word 10		; line number
+	.byt $9e, "4096"
+	.byt 0
+link	.byt $00,$00
+
+	.dsb 4096-*, $aa
+
+l1000	; start of program
+
+	sei
+
+	; disable 8x96 mapping
+	lda #$60
+	sta $fff0
+
+	.(
+	; set CRTC and video
+	ldy #$00
+l1008	sty $e880
+	lda l1150,y	; set CRTC parameters
+;	sta $e881
+	iny
+;	cpy #$12
+	cpy #3
+	bne l1008
+
+	lda #14
+	sta $e84c
+	.)
+
+	.(
+	; clear screen
+l1016	ldy #$00
+	lda #$20
+l101a	sta $8000,y
+	sta $8100,y
+	sta $8200,y
+	sta $8300,y
+	sta $8400,y
+	sta $8500,y
+	sta $8600,y
+	sta $8700,y
+	iny
+	bne l101a
+	.)
+
+	.(
+	; check zeropage and stack
+	ldx #$00
+l1037	txa
+	sta $00,x	; write zeros
+	sta $0100,x
+	inx
+	bne l1037
+l1040	txa
+	eor $00,x
+	bne zperr	; not equal -> error
+	txa
+	eor $0100,x
+	bne stkerr	; not equal -> error
+	inx
+	bne l1040
+l104e	txa
+	eor #$ff	; write $ff
+	sta $00,x
+	sta $0100,x
+	inx
+	bne l104e
+l1059	txa
+	eor #$ff
+	eor $00,x
+	bne zperr	; -> error
+	txa
+	eor #$ff
+	eor $0100,x
+	bne stkerr	; -> error
+	inx
+	bne l1059
+	beq zpend	; exit
+
+	; zeropage error during init 
+zperr	.(
+	tax
+l106e	lda l1112,y	; write message to screen
+	beq enderr
+	ora #$80
+	sta $8000,y
+	iny
+	bne l106e	; always
+	.)
+
+	; write lowest error bit in mismatch byte on screen
+&enderr	.(
+	txa
+	ldx #$38
+l107e	dex
+	asl
+	bne l107e
+	txa
+	sta $8000,y
+hang	jmp hang
+	.)
+
+	; stack error during init
+stkerr	.(
+	tax
+l108a	lda l1124,y
+	beq enderr	; exit to above
+	ora #$80
+	sta $8000,y	; write to screen
+	iny
+	bne l108a	; always
+	.)
+
+	; end of zeropage check
+	.)
+
+	;
+zpend	.(
+
+	; actual code to init
+	ldx #$ff
+	txs
+	stx tmp1	; XOR value ($ff)
+	jsr l10c1	; copy code to $200-$aff with XOR
+	jsr l10e7	; check copied code
+	bne l10b1
+	inc tmp1	; next XOR value($00)
+	jsr l10c1	
+	jsr l10e7
+	bne l10b1
+l10ae	jmp $0200	; jump to code copied from $1162
+
+	; write error message to screen
+l10b1	.(
+	tax
+l10b2	lda l1138,y
+	beq enderr
+	ora #$80
+	sta $8000,y
+	iny
+	bne l10b2
+	.)
+
+	;.byt $f0,$c5	; TODO: remove
+
+	; called from init (1)
+	; copy code from $1162-1a61 to $0200-0aff
+	; XORing bit with $20 in the process
+l10c1	lda #<l1162	; $62
+	sta ptr1
+	lda #>l1162	; $11
+	sta ptr1+1
+	lda #$00
+	sta ptr2
+	lda #$02
+	sta ptr2+1
+	ldy #$00
+l10d3	lda (ptr1),y
+	eor tmp1
+	sta (ptr2),y
+	iny
+	bne l10d3
+l10dc	inc ptr1+1
+	inc ptr2+1
+	lda #$0b
+	cmp ptr2+1
+	bne l10d3
+l10e6	rts
+
+	; called from init (2)
+	; compare the code from $1162-$1a61 with $0200-$0aff 
+	; XORing with $20 in the process
+	;
+	; note that the caller actually checks the Z-flag,
+	; but this is always set, as there is a program bug
+	; in the error exit - it jumps to where LDY is cleared,
+	; which sets the Z-flag. 
+l10e7	lda #<l1162	; $62
+	sta ptr1
+	lda #>l1162	; $11
+	sta ptr1+1
+	lda #$00
+	sta ptr2
+	lda #$02
+	sta ptr2+1
+	ldy #$00
+l10f9	lda (ptr1),y
+	eor tmp1
+	eor (ptr2),y
+	bne l110e	; -> error exit
+	iny
+	bne l10f9
+	inc ptr1+1
+	inc ptr2+1
+	lda #$0b
+	eor ptr2+1
+	bne l10f9
+l110e	ldy #$00
+	rts
+
+	.)
+
+	; --------------------------------------
+	; init messages
+	.byt "@"		; $40
+	; ZEROPAGE BAD: BIT" 
+l1112	.byt "ZE"		; $5a,$45
+	.byt "RO"		; $52,$4f
+	.byt "PA"		; bvc l1159
+	.byt "GE "		; $47,$45,$20
+	.byt "BAD"		; $42,$41,$44
+	.byt ": B"		; $3a,$20,$42
+	.byt "IT",0		; $49,$54,$00
+	; STACK PAGE BAD: BIT"
+l1124 	.byt "STA"		; $53,$54,$41
+	.byt "CK "		; $43,$4b,$20
+	.byt "PA"		; bvc l116d
+	.byt "GE "		; $47,$45,$20
+	.byt "BAD"		; $42,$41,$44
+	.byt ": B"		; $3a,$20,$42
+	.byt "IT",0		; $49,$54,$00
+	; DIAGNOSTIC RAM BAD: BIT"
+l1138 	.byt "DIA"		; $44,$49,$41
+	.byt "GNO"		; $47,$4e,$4f
+	.byt "STI"		; $53,$54,$49
+	.byt "C R"		; $43,$20,$52
+	.byt "AM "		; $41,$4d,$20
+	.byt "BAD"		; $42,$41,$44
+	.byt ": B"		; $3a,$20,$42
+	.byt "IT", 0		; $49,$54,$00
+
+	; --------------------------------------
+
+	; CRTC init parameter
+l1150 	.byt 126, 80, 100
+
+	;.byt $3f,$28,$32
+	.byt $31,$28,$29
+	;.byt $05,$26,$01
+	.byt $0f,$27,$00
+	.byt $19,$20,$00	; ora !$0020,y
+	;.byt $07,$20		; ora #$00
+	.byt $09,$00		; ora #$00
+	.byt $00
+	.byt $10,$00		; bpl l115e
+ 	.byt $00,$00,$00
+	.byt $00
+
+	;---------------------------------------
+	; relocated code
+	;
+	; the following code is copied to $0200-...
+	; So all addresses must be offset with $0f62
+
+offset=0	;*-$0200
+
+	; clear bytes 1950-1961 on 80 column screen?
+l1162	
+	*=$0200
+	.(
+	ldx #$0b
+l1164	lda #$20
+	sta $879e,x 
+	dex
+	bpl l1164
+	.)
+
+	;---------------------------------------
+	; identify machine (check for 8x96)
+
+	; save the interrupt/reset vectors
+	.(
+	ldx #$05
+l116e	lda $fffa,x
+	sta intvect-offset,x	; la73,x
+	dex
+	bpl l116e
+	.)
+
+	; enable 8x96 memory mapping
+	lda #$80
+	sta $fff0
+
+	; compare interrupt/reset vectors
+	.(
+	ldx #$05
+l117e	lda intvect-offset,x	; la73,x
+	eor $fffa,x
+	bne l1193
+	dex
+	bpl l117e
+	.)
+
+	; we have no 8x96, ie. an 8032 only
+	; write into banner message
+l1189	lda #$33		; "3"
+	sta l18c0-offset	; l95e
+	lda #$32		; "2"
+	sta l18c0+1-offset	; l95f
+
+	; all machines
+l1193	lda #$60	; disable 8x96 mapping
+	sta $fff0
+
+	; init cycles counter
+	lda #$00
+	sta cycles
+	sta cycles+1
+	sta cycles+2
+
+	; init start of screen for chrout
+	lda #$80
+	sta screen+1			; chrout scr hi ptr
+	lda #$00
+	sta screen			; chrout scr lo ptr
+
+	; ------------------------------
+	; clear screen
+	lda #$93
+	jsr chrout-offset	; l742
+
+	; ------------------------------
+	; output banner message
+	.(
+	lda #$28		; 40 column?
+	sta cols
+
+	lda #>initmsg-offset	;$09
+	sta ptr1+1
+	lda #<initmsg-offset	;$45
+	sta ptr1
+	ldy #$00
+l11bb	lda (ptr1),y
+	beq l11d8
+	pha
+	cmp #$13
+	bne l11cc
+	; on marker, move to $258 = char 600 = MIDDLE of line 7
+	; to print the right column of diag messages
+	lda #$82
+	sta screen+1
+	lda #$58
+	sta screen
+l11cc	pla
+	jsr chrout-offset	; l742
+	inc ptr1
+	bne l11bb
+l11d4	inc ptr1+1
+	bne l11bb
+	.)
+
+	; ------------------------------
+	; print out screen codes 0-255
+l11d8	lda #$80
+	sta scrptr+1	; screen ptr hi
+	sta lineptr+1	; start of line
+	sta screen+1	; chrout scr ptr hi
+	lda #$a8
+	sta scrptr	; screen ptr lo
+	sta screen	; chrout scr ptr lo
+	sta lineptr	; start of line
+	lda #$40	; 64 columns?
+	sta cols
+
+	ldy #$00
+	ldx #$00
+l11f0	txa
+	sta (scrptr),y	; store value on screen
+	inx
+	inc scrptr
+	bne l11fa
+l11f8	inc scrptr+1
+l11fa	txa
+	and #$3f	; end of line (64 values/line)
+	bne l11f0
+
+l11ff	lda #$0d
+	jsr chrout-offset	;l742
+	txa
+	bne l11f0
+
+	; ------------------------------
+	; set IRQ routine
+
+        ; set interrupt pointer to 08db
+        lda #<irq-offset        ; $db
+        sta $90
+        lda #>irq-offset        ; $08
+        sta $91
+
+	; ------------------------------
+	; test loop
+
+loop	lda #<tests
+	sta testp
+	lda #>tests
+	sta testp+1
+
+	lda #12
+	sta $e880
+	lda #$10
+	sta $e881
+
+test	
+	ldy #1
+	; "*" on screen
+	lda (testp),y
+
+	pha	
+	cmp #$84
+	bcc lower
+	lda #$13
+	ldx #$e8
+	bne setcrtc
+lower	lda #$10
+	ldx #0
+setcrtc	pha
+	lda #12
+	sta $e880
+	pla
+	sta $e881
+	lda #13
+	sta $e880
+	stx $e881
+	pla
+
+	sta scrptr+1
+	dey
+	lda (testp),y
+	sta scrptr
+	ora scrptr+1
+	beq endloop
+	lda #"*"
+	sta (scrptr),y
+	ldy #2
+	lda (testp),y
+	sta scrptr
+	iny
+	lda (testp),y
+	sta scrptr+1
+	iny 
+	lda (testp),y
+	pha		; first parameter
+	iny
+	lda (testp),y
+	tax		; second parameter
+	iny
+	lda (testp),y
+	sta ptr1
+	iny
+	lda (testp),y
+	sta ptr1+1
+
+	pla		; restore AC, XR has 2nd param
+	jsr jmpind-offset
+
+	ldy #1
+	lda (testp),y
+	sta scrptr+1
+	dey
+	lda (testp),y
+	sta scrptr
+	lda #" "
+	sta (scrptr),y
+
+	lda #8
+	clc
+	adc testp
+	sta testp
+	bcc nopage
+	inc testp+1
+nopage	jmp test
+	
+
+	; ------------------------------
+	; end of loop
+
+endloop	clc
+	inc pattrn
+
+	; increase cycles counter (in decimal mode)
+	sed
+	lda #$01
+	adc cycles
+	sta cycles
+	lda #$00
+	adc cycles+1
+	sta cycles+1
+	lda #$00
+	adc cycles+2
+	sta cycles+2
+	cld
+
+	; print cycle counter on screen
+	lda #$80		; scr pointer
+	sta scrptr+1
+	lda #$3c
+	sta scrptr
+
+	lda #$80		; REV flag
+	sta revfl
+
+	ldx #$02
+l1686	lda cycles,x
+	jsr hexout-offset	; l72f
+	dex
+	bpl l1686
+
+l168e	jmp loop-offset	; $02a5
+
+jmpind	jmp (ptr1)
+
+	; -----------------------------
+	; test addresses, parameters etc
+tests
+	; RAM $0200-$7FFF (Actually $0b00-, as it is destructive and should not overwrite this code)
+	.word $8230		; "*"
+	.word $824a
+	.byt >(endofprg+255), $7f ; start page, end page
+	.word test_ram-offset
+
+	; RAM $8000-$8FFF Screen memory 
+	.word $8280		; "*"
+	.word $829a
+	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
+	.word test_screenmem-offset
+
+	; ROM BASIC & KERNAL
+	.word $82a8		; "*"
+	.word $82c2
+	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
+	.word test_rom-offset
+
+	; ROM EDITOR
+	.word $8258		; "*"
+	.word $8272
+	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
+	.word test_rom-offset
+
+	; IEEE488
+	.word $8348		; "*"
+	.word $8362		; result on screen
+	.byt 0,0		; parameters
+	.word test_ieee-offset	; exec addr
+
+	; Userport
+	.word $8398		; "*"
+	.word $83b2		; result on screen
+	.byt 0,0		; parameters
+	.word test_userp-offset	; exec addr
+
+	; 50hz
+	.word $8528		; "*"
+	.word $8542		; result on screen
+	.byt 0,0		; parameters
+	.word test_50hz-offset	; exec addr
+
+	; Timer 1
+	.word $8488		; "*"
+	.word $84a2		; result on screen
+	.byt 0,0		; parameters
+	.word test_timer1-offset ; exec addr
+
+	; Timer 1
+	.word $84d8		; "*"
+	.word $84f2		; result on screen
+	.byt 0,0		; parameters
+	.word test_timer2-offset ; exec addr
+
+	; CS/A Video RAM $010000 - must not cross 16 boundaries
+	.word $8460		; "*"
+	.word $847a		; result on screen
+	.byt $18,$27		; start page in bank 1, number of pages -1
+	.word test_vmem-offset ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.word $84b0		; "*"
+	.word $84ca		; result on screen
+	.byt $40,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem-offset ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.word $8500		; "*"
+	.word $851a		; result on screen
+	.byt $80,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem-offset ; exec addr
+
+	; CS/A Video RAM $014000 - must not cross 16 boundaries
+	.word $8550		; "*"
+	.word $856a		; result on screen
+	.byt $c0,$3f		; start page in bank 1, number of pages-1
+	.word test_vmem-offset ; exec addr
+
+	; end marker
+	.word 0
+
+	
+	; ----------------------------------
+	; output BAD string with bit number
+	; in: AC holds detected error bit
+badbit	ldy #$00
+	ldx #$38		; "8"
+badbit2	dex			; count down bits
+	asl
+	bne badbit2		; on last 1-bit exit loop
+errout	txa			; AC has bit number in ASCII
+
+	; output BAD string with bit number / char to print in
+	; AC in ASCII, Y has offset in BADSTR
+	; 0  = BAD BIT: 
+	; 10 = BAD ROM: UE
+	; 22 = BAD
+	; 26 = IEEE BAD: DIO
+badout	pha
+l172b	lda badstr-offset,y
+	iny
+	jsr chrout-offset
+	bpl l172b
+l1734	pla
+	jsr chrout-offset
+	lda #$0d
+	jmp chrout-offset
+
+	; output OK
+	; only in first cycle, don't overwrite potential errors in later cycles
+okout	ldy #$00
+	lda cycles
+	ora cycles+1
+	ora cycles+2
+	bne l1750		; only in first cycle
+l1747	lda okstr-offset,y	; l8f5,y
+	iny
+	jsr chrout-offset	; l742
+	bpl l1747
+l1750	rts
+
+
+
+	; ---------------------
+	; used in the 50 HZ IRQ test
+	; interrupt routine
+irq	.(
+	lda $0104,x		
+	ora #$04		; set I bit in status on the stack, basically SEI
+	sta $0104,x
+	lda cnt
+	sta ptr1
+	sty ptr1+1		; y leaks through from main program
+	pla
+	tay
+	pla
+	tax
+	pla
+	bit $e812
+	bit $e84d
+	rti
+	.)
+
+	; ---------------------
+okstr	.byt "O", "K"+$80
+badstr	.byt $12, "BAD BIT:", " "+$80
+	.byt $12, "BAD ROM: P", "."+$80
+	.byt $12, "BA", "D"+$80
+	.byt $12, "IEEE BAD: DI", "O"+$80	; $44,$49,$cf
+
+	; ---------------------
+	; 8296 block checks
+
+	; $fff0 values for the four blocks
+l1881	.byt $80,$8c,$80
+	.byt $8c
+	; start page of memory to test
+l1885	.byt $80,$80
+	.byt $c0,$c0
+	; end page of memory to test
+l1889	.byt $bf
+	.byt $bf,$fe,$fe
+
+initmsg
+	.byt $92		; REV OFF
+	.byt "   "
+	.byt "   "
+	.byt "   "
+	.byt $12,$20,"DIAGNOSTIC 82"
+l18c0	.byt "96 " 
+	.byt "   V3.0    "
+	.byt "DATE: 03-08-84 CYCLES: 000000 "
+	.byt 13,13,13		; 
+	.byt 13,13,13
+	.byt 13 
+	.byt " TEST: RAM 0200-7FFF",13
+	.byt " TEST: RAM 8000-8FFF",
+	.byt 13,13		; move down
+	.byt 13,13		;
+	.byt 13
+	.byt " TEST: CS/A65 MMU",13
+	.byt " TEST: VMEM 10000-13FFF",13
+	.byt " TEST: VMEM 14000-17FFF",13
+	.byt " TEST: VMEM 18000-1BFFF",13
+	.byt " TEST: VMEM 1C000-1FFFF",13
+	.byt 13
+	.byt $13		; move back to line 7 for second column
+	.byt " TEST: ROM EDITOR",13
+	.byt " TEST: ROM KERNAL & BASIC"
+	.byt $0d,$0d
+	.byt " TEST: IEEE 488 BUS",13
+	.byt " TEST: USER PORT"
+	.byt $0d,$0d,$0d
+	.byt " TEST: TIMER 1",13
+	.byt " TEST: TIMER 2",13
+	.byt " TEST: 50 HZ IRQ",13
+	.byt $0d,$00
+
+intvect	.byt $aa
+	.byt $aa,$aa,$aa
+	.byt $aa,$aa,$aa
+	.byt $aa,$aa,$aa
+	.byt $aa
+
+#include "mod_memtest.a65"
+#include "mod_output.a65"
+
+#include "test_50hz.a65"
+#include "test_rom.a65"
+#include "test_ram.a65"
+#include "test_screenmem.a65"
+#include "test_timer1.a65"
+#include "test_timer2.a65"
+#include "test_ieee.a65"
+#include "test_userport.a65"
+
+	; CS/A65 Video card memory
+#include "test_vmem.a65"
+
+endofprg:
+
