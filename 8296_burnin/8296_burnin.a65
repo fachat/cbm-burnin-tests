@@ -266,10 +266,13 @@ l1150 	;.byt $3f,$28,$32
 	; the following code is copied to $0200-...
 	; So all addresses must be offset with $0f62
 
-offset=*-$0200
+;offset=*-$0200
+offset=0
 
 	; clear bytes 1950-1961 on 80 column screen
-l1162	.(
+l1162	
+	*=$0200
+	.(
 	ldx #$0b
 l1164	lda #$20
 	sta $879e,x 
