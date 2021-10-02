@@ -1,6 +1,7 @@
 	
 	; -----------------------------
 	; hexout
+	; leaves x and y unmodified
 hexout	.(
 	pha
 	lsr
@@ -19,6 +20,7 @@ l16a2	adc #$30
 
 	; -----------------------------
 	; chrout
+	; leaves x and y unmodified
 chrout	.(
 	pha			; save char
 	sty tmp1		; save YR

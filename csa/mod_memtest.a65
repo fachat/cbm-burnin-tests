@@ -2,7 +2,17 @@
 	; --------------------------------------
 	; test memory
 	; set with pattern
+	;
+	; returns with z=1 when ok
+	; returns with z=0 on first error
+	; then:
+	; ac=broken bit
+	; x/y=address (x hi, y lo)
+	; c=0 is read unstable, c=1 write unstable
 memtest	.(
+
+tmp2	=ptr2
+
 	ldy #$00
 	sty ptr1
 	tya
@@ -33,6 +43,7 @@ l1775	clc
 	adc ptr1+1
 	adc pattrn
 	eor tmp1
+	sta tmp2
 	eor (ptr1),y
 	bne l1794		; wrong value
 	iny
@@ -48,7 +59,19 @@ l1775	clc
 l178e	lda tmp1
 	eor #$ff		; is XOR through?
 	bne l1754		; no, try next
-l1794	rts
+	rts
+
+l1794	; analyze error
+	pha			; save bit
+	lda tmp2
+	eor (ptr1),y		; check again
+	beq rderr		; read unstable
+	sec
+	.byt $24
+rderr	clc
+	ldx ptr1+1		; high byte, y already has low byte of addr
+	pla			; restore bit
+	rts
 	.)
 
 

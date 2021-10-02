@@ -11,6 +11,7 @@ test_vmem:
 	lsr
 	lsr
 	lsr
+	and #$0c		; four block boundary
 	ora #$10		; VDC memory offset
 	tay
 	sty $eff4
@@ -57,7 +58,12 @@ badmmu
 	jsr badout-offset
 	bne end
 
-l122a	jsr badbit-offset	; l7bf
+l122a	pha
+	txa
+	and #$3f
+	tax
+	pla
+	jsr badbitx-offset	; l7bf
 
 end	; reset MMU
 	ldy #4

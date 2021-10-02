@@ -6,7 +6,7 @@ tmp1	= $20			; general temp value for XOR, or adding
 ptr1	= $21			; general pointer / 16 bit counter
 ptr2	= $23			; general pointer / 16 bit counter
 cnt	= $25			; general 8 bit counter
-;	= $26
+;tmp2	= $26
 blkno	= $27			; block number for 8x96 test
 memp1	= $28			; memory test pointer
 pattrn	= $2a			; memory test pattern; will be increased each cycle (starts initialized by zp mem test)
@@ -44,7 +44,7 @@ l1000	; start of program
 	ldy #$00
 l1008	sty $e880
 	lda l1150,y	; set CRTC parameters
-;	sta $e881
+	sta $e881
 	iny
 ;	cpy #$12
 	cpy #3
@@ -433,6 +433,7 @@ test
 	; "*" on screen
 	lda (testp),y
 
+/* only needed for 1MHz 40 col screen
 	pha	
 	cmp #$84
 	bcc lower
@@ -450,6 +451,7 @@ setcrtc	pha
 	sta $e880
 	stx $e881
 	pla
+*/
 
 	sta scrptr+1
 	dey
@@ -621,15 +623,41 @@ tests
 	; end marker
 	.word 0
 
-	
+
+	; ----------------------------------
+	; output BIT: <addr>.<bit>.<type>
+	; for memory error
+badbitx	.(
+	pha
+	php
+	lda #$12
+	jsr chrout-offset
+	txa
+	jsr hexout-offset
+	tya
+	jsr hexout-offset
+	lda #"W"
+	plp
+	bcc rderr
+	.byt $2c
+rderr	lda #"R"
+	jsr chrout-offset
+	pla
+	ldy #4
+	.byt $2c
+	.)
+	; fall-through
 	; ----------------------------------
 	; output BAD string with bit number
 	; in: AC holds detected error bit
-badbit	ldy #$00
+badbit	
+	ldy #$00
 	ldx #$38		; "8"
 badbit2	dex			; count down bits
 	asl
 	bne badbit2		; on last 1-bit exit loop
+	
+
 errout	txa			; AC has bit number in ASCII
 
 	; output BAD string with bit number / char to print in

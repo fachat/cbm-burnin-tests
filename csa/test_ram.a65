@@ -18,7 +18,7 @@ l1220	jsr memtest-offset	; l7ef
 	; ok, no error
 	jmp okout-offset	; l7db
 
-l122a	jmp badbit-offset	; l7bf
+l122a	jmp badbitx-offset	; l7bf
 	.)
 
 
