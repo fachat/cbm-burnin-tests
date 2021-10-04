@@ -1,5 +1,7 @@
 	
 
+#undef	CLK1MHZ
+
 #undef	FIX
 
 tmp1	= $20			; general temp value for XOR, or adding
@@ -40,6 +42,7 @@ l1000	; start of program
 	sta $fff0
 
 	.(
+#ifndef CLK1MHZ
 	; set CRTC and video
 	ldy #$00
 l1008	sty $e880
@@ -49,7 +52,7 @@ l1008	sty $e880
 ;	cpy #$12
 	cpy #3
 	bne l1008
-
+#endif
 	lda #14
 	sta $e84c
 	.)
@@ -433,7 +436,8 @@ test
 	; "*" on screen
 	lda (testp),y
 
-/* only needed for 1MHz 40 col screen
+#ifdef CLK1MHZ
+/* only needed for 1MHz 40 col screen */
 	pha	
 	cmp #$84
 	bcc lower
@@ -451,7 +455,7 @@ setcrtc	pha
 	sta $e880
 	stx $e881
 	pla
-*/
+#endif
 
 	sta scrptr+1
 	dey
