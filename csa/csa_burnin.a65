@@ -310,6 +310,9 @@ gfe       cpx #8    ; more than 2 MHZ
           .byt $2c
 gf3       lda #0
 	sta mhz
+	; disable interrupt again
+	lda #0
+        sta SYSPORT
 	.)
 
 	.(
