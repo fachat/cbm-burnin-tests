@@ -74,17 +74,38 @@ l14b8	; calculate difference between second and first pass
 	; compare difference with target value of $0386-$0387 = 902-903
 	; (which implies that a loop is around 22 cycles avg.)
 
+	lda ptr1+1
+	jsr hexout-offset
+	lda ptr1
+	jsr hexout-offset
+	lda #" "
+	jsr chrout-offset
+
+	lda ptr1+1
+	bit mhz
+	bpl slow
+
+	cmp #$07		; hi byte difference is 3?
+	bne l14d6		; no, then error
+	lda ptr1		; low byte is #$86 or #$87?
+	sec
+	sbc #$07
+	cmp #$2			; 07, 08
+	bcs l14d6		; no then error
+	bcc ok
+slow
 	cmp #$03		; hi byte difference is 3?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is #$86 or #$87?
-	and #$fe
-	cmp #$86
-	bne l14d6		; no then error
-
+	sec
+	sbc #$86
+	cmp #$3			; 86, 87, 88
+	bcs l14d6		; no then error
+ok
 	jsr okout-offset	; OK
 	bne l14dd
 
-l14d6	lda #$0d
+l14d6 	lda #$0d
 	ldy #$16		; "BAD"
 	jsr badout-offset	; l7c8
 
