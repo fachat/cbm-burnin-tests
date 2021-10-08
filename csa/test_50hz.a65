@@ -82,7 +82,7 @@ l14b8	; calculate difference between second and first pass
 	jsr chrout-offset
 
 	lda ptr1+1
-	bit mhz
+	bit mode
 	bpl slow
 
 	cmp #$07		; hi byte difference is 3?

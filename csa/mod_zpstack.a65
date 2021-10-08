@@ -1,0 +1,97 @@
+	
+
+	.(
+	; check zeropage and stack
+	ldx #$00
+l1037	txa
+	sta $00,x	; write zeros
+	sta $0100,x
+	inx
+	bne l1037
+l1040	txa
+	eor $00,x
+	bne zperr	; not equal -> error
+	txa
+	eor $0100,x
+	bne stkerr	; not equal -> error
+	inx
+	bne l1040
+l104e	txa
+	eor #$ff	; write $ff
+	sta $00,x
+	sta $0100,x
+	inx
+	bne l104e
+l1059	txa
+	eor #$ff
+	eor $00,x
+	bne zperr	; -> error
+	txa
+	eor #$ff
+	eor $0100,x
+	bne stkerr	; -> error
+	inx
+	bne l1059
+	beq zpend	; exit
+
+	; zeropage error during init 
+zperr	.(
+	tax
+l106e	lda l1112,y	; write message to screen
+	beq enderr
+	ora #$80
+	sta $8000,y
+	iny
+	bne l106e	; always
+	.)
+
+	; write lowest error bit in mismatch byte on screen
+&enderr	.(
+	txa
+	ldx #$38
+l107e	dex
+	asl
+	bne l107e
+	txa
+	sta $8000,y
+hang	jmp hang
+	.)
+
+	; stack error during init
+stkerr	.(
+	tax
+l108a	lda l1124,y
+	beq enderr	; exit to above
+	ora #$80
+	sta $8000,y	; write to screen
+	iny
+	bne l108a	; always
+	.)
+
+	; end of zeropage check
+	beq zpend
+	;
+
+	; --------------------------------------
+	; init messages
+	.byt "@"		; $40
+	; ZEROPAGE BAD: BIT" 
+l1112	.byt "ZE"		; $5a,$45
+	.byt "RO"		; $52,$4f
+	.byt "PA"		; bvc l1159
+	.byt "GE "		; $47,$45,$20
+	.byt "BAD"		; $42,$41,$44
+	.byt ": B"		; $3a,$20,$42
+	.byt "IT",0		; $49,$54,$00
+	; STACK PAGE BAD: BIT"
+l1124 	.byt "STA"		; $53,$54,$41
+	.byt "CK "		; $43,$4b,$20
+	.byt "PA"		; bvc l116d
+	.byt "GE "		; $47,$45,$20
+	.byt "BAD"		; $42,$41,$44
+	.byt ": B"		; $3a,$20,$42
+	.byt "IT",0		; $49,$54,$00
+
+zpend	
+
+	.)
