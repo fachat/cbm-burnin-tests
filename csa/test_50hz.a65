@@ -75,11 +75,10 @@ l14b8	; calculate difference between second and first pass
 	; (which implies that a loop is around 22 cycles avg.)
 
 	lda ptr1+1
-	jsr hexout-offset
+	jsr hexout
 	lda ptr1
-	jsr hexout-offset
-	lda #" "
-	jsr chrout-offset
+	jsr hexout
+	jsr spout
 
 	lda #MODE_2MHZ
 	bit mode
@@ -104,12 +103,12 @@ slow
 	cmp #$3			; 86, 87, 88
 	bcs l14d6		; no then error
 ok
-	jsr okout-offset	; OK
+	jsr okout		; OK
 	bne l14dd
 
 l14d6 	lda #$0d
 	ldy #$16		; "BAD"
-	jsr badout-offset	; l7c8
+	jsr badout		; l7c8
 
 l14dd	
 	lda #$34		; output CB2, direct control via CRB.3, set CB2 low

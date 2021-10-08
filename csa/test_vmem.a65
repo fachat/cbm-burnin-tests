@@ -36,26 +36,25 @@ test_vmem:
 	sta memp1+1		; end page
 
 	; check the memory
-l1220	jsr memtest-offset	; l7ef
+l1220	jsr memtest	; l7ef
 	bne l122a
 
 	; ok, no error
-	jsr okout-offset	; l7db
+	jsr okout	; l7db
 	bne end
 
 badmmu 	
 	lda #$12
-	jsr chrout-offset
+	jsr chrout
 	lda #"M"
-	jsr chrout-offset
-	jsr chrout-offset
+	jsr chrout
+	jsr chrout
 	lda #"U"
-	jsr chrout-offset
-	lda #" "
-	jsr chrout-offset
+	jsr chrout
+	jsr spout
 	ldy #$16
 	lda #13
-	jsr badout-offset
+	jsr badout
 	bne end
 
 l122a	pha
@@ -63,7 +62,7 @@ l122a	pha
 	and #$3f
 	tax
 	pla
-	jsr badbitx-offset	; l7bf
+	jsr badbitx	; l7bf
 
 end	; reset MMU
 	ldy #4

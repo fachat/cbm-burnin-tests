@@ -8,7 +8,7 @@ hexout	.(
 	lsr
 	lsr
 	lsr
-	jsr l169a-offset	; l738
+	jsr l169a	; l738
 	pla
 l169a	and #$0f
 	cmp #$0a
@@ -17,6 +17,9 @@ l169a	and #$0f
 l16a2	adc #$30
 	.)
 	; fall through
+
+	.byt $2c
+spout	lda #" "
 
 	; -----------------------------
 	; chrout

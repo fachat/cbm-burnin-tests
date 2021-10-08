@@ -49,7 +49,7 @@ l132f	adc (ptr1),y
 	beq l1343		; done
 
 	pla			; restore sum
-	jmp l132f-offset	; loop to add next page
+	jmp l132f	; loop to add next page
 
 l1343	pla			; restore sum
 	sta tmp1		; calculated sum value
@@ -73,7 +73,7 @@ l134b	dex			; XR is param from caller
 	bne l1319
 
 	; editor ROM is done
-l137a	jsr okout-offset	; l7db
+l137a	jsr okout	; l7db
 clrast	rts
 
 	; error in check
@@ -90,7 +90,7 @@ lx	adc #$30
 	tax
 	ldy #$0a		; "BAD ROM: UE"
 	;ldx cnt		; ROM number
-	jmp errout-offset
+	jmp errout
 	.)
 
 

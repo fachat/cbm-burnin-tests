@@ -118,7 +118,7 @@ done
         ; disable mapping, OK
         lda #$60
         sta $fff0
-        jsr okout-offset        ; l7db
+        jsr okout        ; l7db
         bne l165c
 
         ; disable mapping, BAD
@@ -126,15 +126,14 @@ l1650   ldy #$60
         sty $fff0
 	
 	lda cnt
-	jsr hexout-offset
+	jsr hexout
 	txa
-	jsr hexout-offset
-	lda #" "
-	jsr chrout-offset
+	jsr hexout
+	jsr spout
 
         lda #$0d
         ldy #$16                ; "BAD"
-        jsr badout-offset       ; l7c8
+        jsr badout       ; l7c8
 
 l165c   rts
         .)

@@ -29,15 +29,15 @@ l13f7	iny
 
 	; 2nd test: iterate control lines
 l13fa	ldy #$00		; running state
-l13fc	jsr setieee-offset	; l85e - set state of IEEE I/O
-	jsr chkieee-offset	; l833 - check state of IEEE I/O
+l13fc	jsr setieee	; l85e - set state of IEEE I/O
+	jsr chkieee	; l833 - check state of IEEE I/O
 	tya
 	eor tmp1		; XOR target bit
 	and #$f1		; check error bits
 	bne l1411
 l1409	iny			; next IEEE state
 	bne l13fc
-l140c	jsr okout-offset	; l7db
+l140c	jsr okout	; l7db
 	bne l1451
 
 	; error in IEEE
@@ -53,26 +53,26 @@ l1419	ldy #$00
 	beq l140c		; error 7 is OK (NRFD?)
 
 l141f	lda #$12		; REV output
-	jsr chrout-offset	; l742
+	jsr chrout	; l742
 
 	; search for correct string through list of nul-terminated strings
-l1424	lda ieeestr-offset,y	; l92b,y
+l1424	lda ieeestr,y	; l92b,y
 	iny
 	cmp #$00
 	bne l1424
 l142c	dex
 	bne l1424
 	; output error string
-l142f	lda ieeestr-offset,y	; l92b,y
+l142f	lda ieeestr,y	; l92b,y
 	beq l143a
-l1434	jsr chrout-offset	; l742
+l1434	jsr chrout	; l742
 	iny
 	bne l142f
 
 l143a	lda #$20
-	jsr chrout-offset	; l742
+	jsr chrout	; l742
 	ldy #$16		; "BAD"
-	jsr badout-offset	; l7c8
+	jsr badout	; l7c8
 	bne l1451
 
 	; entry on data error on IEEE init
@@ -80,7 +80,7 @@ l1446	tya
 	eor $e820
 	ldy #$1a		; "IEEE BAD IO"
 	ldx #$39
-	jsr badbit2-offset	; l7c3
+	jsr badbit2	; l7c3
 
 l1451	rts
 

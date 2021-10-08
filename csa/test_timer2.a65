@@ -38,7 +38,7 @@ l1564	cli
 	; overflow
 l1574	lda #$0d
 	ldy #$16		; "BAD"
-	jmp badout-offset	; l7c8
+	jmp badout	; l7c8
 
 	; compare counter snapshot from interrupt with target $066c
 l157d	lda ptr1+1
@@ -49,7 +49,7 @@ l157d	lda ptr1+1
 	bne l1574
 
 	; ok
-l1589	jmp okout-offset	; l7db
+l1589	jmp okout	; l7db
 	.)
 
 

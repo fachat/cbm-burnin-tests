@@ -11,15 +11,15 @@ l129c   ; AC param is blockno
         ; loop for the four blocks
 l12a8   
         ldx blkno
-        lda l1881-offset,x      ; 8x96 config register
+        lda l1881,x      ; 8x96 config register
         sta $fff0
-        lda l1885-offset,x      ; start page of memory to test
+        lda l1885,x      ; start page of memory to test
         sta memp1
-        lda l1889-offset,x      ; end page of memory to test
+        lda l1889,x      ; end page of memory to test
         sta memp1+1
 
         inc blkno
-        jsr memtest-offset      ; l7ef
+        jsr memtest      ; l7ef
         pha                     ; zero = ok, non-z = error
 
         ; note these two locations are checked in the FPLA test below
@@ -34,10 +34,10 @@ l12a8
        ; print result
        beq l12e6
 
-l12e1  jsr badbit-offset       ; l7bf
+l12e1  jsr badbit       ; l7bf
        bne l12e9
 
-l12e6  jsr okout-offset        ; l7db
+l12e6  jsr okout        ; l7db
 l12e9   
 	rts
 

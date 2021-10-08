@@ -82,9 +82,6 @@ l101a	sta $8000,y
 	; relocated code
 	;
 	; the following code is copied to $0200-...
-	; So all addresses must be offset with $0f62
-
-offset=0	;*-$0200
 
 	; clear bytes 1950-1961 on 80 column screen?
 l1162	
@@ -165,7 +162,7 @@ endfrq	lda #0
 	; save the interrupt/reset vectors
 	ldx #$05
 l116e	lda $fffa,x
-	sta intvect-offset,x	; la73,x
+	sta intvect,x	; la73,x
 	dex
 	bpl l116e
 
@@ -175,7 +172,7 @@ l116e	lda $fffa,x
 
 	; compare interrupt/reset vectors
 	ldx #$05
-l117e	lda intvect-offset,x	; la73,x
+l117e	lda intvect,x	; la73,x
 	eor $fffa,x
 	bne is8296
 	dex
@@ -274,7 +271,7 @@ l1193	lda #$60	; disable 8x96 mapping
 	; ------------------------------
 	; clear screen
 	lda #$93
-	jsr chrout-offset	; l742
+	jsr chrout	; l742
 
 	; ------------------------------
 	; output banner message
@@ -282,9 +279,9 @@ l1193	lda #$60	; disable 8x96 mapping
 	lda #$28		; 40 column?
 	sta cols
 
-	lda #>initmsg-offset	;$09
+	lda #>initmsg	;$09
 	sta ptr1+1
-	lda #<initmsg-offset	;$45
+	lda #<initmsg	;$45
 	sta ptr1
 	ldy #$00
 l11bb	lda (ptr1),y
@@ -299,7 +296,7 @@ l11bb	lda (ptr1),y
 	lda #$58
 	sta screen
 l11cc	pla
-	jsr chrout-offset	; l742
+	jsr chrout	; l742
 	inc ptr1
 	bne l11bb
 l11d4	inc ptr1+1
@@ -332,7 +329,7 @@ l11fa	txa
 	bne l11f0
 
 l11ff	lda #$0d
-	jsr chrout-offset	;l742
+	jsr chrout	;l742
 	txa
 	bne l11f0
 
@@ -340,9 +337,9 @@ l11ff	lda #$0d
 	; set IRQ routine
 
         ; set interrupt pointer to 08db
-        lda #<irq-offset        ; $db
+        lda #<irq        ; $db
         sta $90
-        lda #>irq-offset        ; $08
+        lda #>irq        ; $08
         sta $91
 
 	; ------------------------------
@@ -430,7 +427,7 @@ fast1	pla
 	sta ptr1+1
 
 	pla		; restore AC, XR has 2nd param
-	jsr jmpind-offset
+	jsr jmpind
 
 	ldy #1
 	lda (testp),y
@@ -448,7 +445,7 @@ notest
 	sta testp
 	bcc nopage
 	inc testp+1
-nopage	jmp test-offset
+nopage	jmp test
 	.)	
 
 	; ------------------------------
@@ -481,11 +478,11 @@ endloop	clc
 
 	ldx #$02
 l1686	lda cycles,x
-	jsr hexout-offset	; l72f
+	jsr hexout	; l72f
 	dex
 	bpl l1686
 
-l168e	jmp loop-offset	; $02a5
+l168e	jmp loop	; $02a5
 
 jmpind	jmp (ptr1)
 
@@ -497,28 +494,28 @@ tests
 	.byt 1,1
 	.word $824a
 	.byt >(endofprg+255), $7f ; start page, end page
-	.word test_ram-offset
+	.word test_ram
 
 	; RAM $8000-$8FFF Screen memory 
 	.word $8280		; "*"
 	.byt 0,MODE_UPET+MODE_CSA+MODE_8296
 	.word $829a
 	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
-	.word test_screenmem-offset
+	.word test_screenmem
 
 	; RAM $8000-$87FF Screen memory 
 	.word $8280		; "*"
 	.byt MODE_40COL, MODE_40COL
 	.word $829a
 	.byt 0,8		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
-	.word test_screenmem-offset
+	.word test_screenmem
 
 	; RAM $8000-$83FF Screen memory 
 	.word $8280		; "*"
 	.byt 0, MODE_40COL
 	.word $829a
 	.byt 0,4		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
-	.word test_screenmem-offset
+	.word test_screenmem
 
 	; ----
 	; 8296 block tests
@@ -526,25 +523,25 @@ tests
 	.byt 0, MODE_8296
 	.word $82ea
 	.byt 0,0		; blockno
-	.word test_8296-offset
+	.word test_8296
 
 	.word $8320		; "*"
 	.byt 0, MODE_8296
 	.word $833a
 	.byt 1,0		; blockno
-	.word test_8296-offset
+	.word test_8296
 
 	.word $8370		; "*"
 	.byt 0, MODE_8296
 	.word $838a
 	.byt 2,0		; blockno
-	.word test_8296-offset
+	.word test_8296
 
 	.word $83c0		; "*"
 	.byt 0, MODE_8296
 	.word $83da
 	.byt 3,0		; blockno
-	.word test_8296-offset
+	.word test_8296
 
 	; 8296 FPLA MMU
 	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
@@ -552,7 +549,7 @@ tests
 	.byt 0, MODE_8296
 	.word $842a
 	.byt 0,0		; blockno
-	.word test_fpla-offset
+	.word test_fpla
 
 	; ----
 	; ROM BASIC & KERNAL
@@ -560,49 +557,49 @@ tests
 	.byt 1,1
 	.word $82c2
 	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
-	.word test_rom-offset
+	.word test_rom
 
 	; ROM EDITOR
 	.word $8258		; "*"
 	.byt 1,1
 	.word $8272
 	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
-	.word test_rom-offset
+	.word test_rom
 
 	; IEEE488
 	.word $8348		; "*"
 	.byt 1,1
 	.word $8362		; result on screen
 	.byt 0,0		; parameters
-	.word test_ieee-offset	; exec addr
+	.word test_ieee	; exec addr
 
 	; Userport
 	.word $8398		; "*"
 	.byt 1,1
 	.word $83b2		; result on screen
 	.byt 0,0		; parameters
-	.word test_userp-offset	; exec addr
+	.word test_userp	; exec addr
 
 	; 50hz
 	.word $8528		; "*"
 	.byt 1,1
 	.word $8542		; result on screen
 	.byt 0,0		; parameters
-	.word test_50hz-offset	; exec addr
+	.word test_50hz	; exec addr
 
 	; Timer 1
 	.word $8488		; "*"
 	.byt 1,1
 	.word $84a2		; result on screen
 	.byt 0,0		; parameters
-	.word test_timer1-offset ; exec addr
+	.word test_timer1 ; exec addr
 
 	; Timer 1
 	.word $84d8		; "*"
 	.byt 1,1
 	.word $84f2		; result on screen
 	.byt 0,0		; parameters
-	.word test_timer2-offset ; exec addr
+	.word test_timer2 ; exec addr
 
 	; ----
 	; CS/A Video RAM $010000 - must not cross 16 boundaries
@@ -610,28 +607,28 @@ tests
 	.byt 0,MODE_CSA
 	.word $847a		; result on screen
 	.byt $18,$27		; start page in bank 1, number of pages -1
-	.word test_vmem-offset ; exec addr
+	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $84b0		; "*"
 	.byt 0,MODE_CSA
 	.word $84ca		; result on screen
 	.byt $40,$3f		; start page in bank 1, number of pages-1
-	.word test_vmem-offset ; exec addr
+	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $8500		; "*"
 	.byt 0,MODE_CSA
 	.word $851a		; result on screen
 	.byt $80,$3f		; start page in bank 1, number of pages-1
-	.word test_vmem-offset ; exec addr
+	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $8550		; "*"
 	.byt 0,MODE_CSA
 	.word $856a		; result on screen
 	.byt $c0,$3f		; start page in bank 1, number of pages-1
-	.word test_vmem-offset ; exec addr
+	.word test_vmem ; exec addr
 #endif
 	; end marker
 	.word 0
@@ -644,19 +641,19 @@ badbitx	.(
 	pha
 	php
 	lda #$12
-	jsr chrout-offset
+	jsr chrout
 	txa
-	jsr hexout-offset
+	jsr hexout
 	tya
-	jsr hexout-offset
+	jsr hexout
 	lda #" "
-	jsr chrout-offset
+	jsr chrout
 	lda #"W"
 	plp
 	bcc rderr
 	.byt $2c
 rderr	lda #"R"
-	jsr chrout-offset
+	jsr chrout
 	pla
 	ldy #4
 	.byt $2c
@@ -682,14 +679,14 @@ errout	txa			; AC has bit number in ASCII
 	; 22 = BAD
 	; 26 = IEEE BAD: DIO
 badout	pha
-l172b	lda badstr-offset,y
+l172b	lda badstr,y
 	iny
-	jsr chrout-offset
+	jsr chrout
 	bpl l172b
 l1734	pla
-	jsr chrout-offset
+	jsr chrout
 	lda #$0d
-	jmp chrout-offset
+	jmp chrout
 
 	; output OK
 	; only in first cycle, don't overwrite potential errors in later cycles
@@ -698,9 +695,9 @@ okout	ldy #$00
 	ora cycles+1
 	ora cycles+2
 	bne l1750		; only in first cycle
-l1747	lda okstr-offset,y	; l8f5,y
+l1747	lda okstr,y	; l8f5,y
 	iny
-	jsr chrout-offset	; l742
+	jsr chrout	; l742
 	bpl l1747
 l1750	rts
 

@@ -66,10 +66,10 @@ l1280	inc ptr1+1
 	pla
 	cmp ptr1+1
 	beq l1288
-	jmp mloop-offset
+	jmp mloop
 
 	; OK
-l1288	jmp okout-offset	; l7db
+l1288	jmp okout	; l7db
 
 	; analyze the error 
 l128d	pha
@@ -81,7 +81,7 @@ l128d	pha
 rderr	clc
 	ldx ptr1+1
 	pla
-	jsr badbitx-offset	; l7bf
+	jsr badbitx	; l7bf
 
 	pla
 	; copy screen mem back

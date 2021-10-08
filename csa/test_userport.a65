@@ -11,16 +11,15 @@ l13ac	tya
 	eor $e84f		; compare on IRA (mirror without handshake)
 	bne l13b5		; error
 l13b1	dey			; next value
-	jmp l13a7-offset	; loop
+	jmp l13a7		; loop
 
-l13b5	jsr hexout-offset
-	lda #" "
-	jsr chrout-offset	
+l13b5	jsr hexout
+	jsr spout	
 	ldy #$16		; "BAD" text
 	lda #$0d		; invisible char after BAD
-	jmp badout-offset	; l7c8
+	jmp badout	; l7c8
 
-l13be	jmp okout-offset	; l7db
+l13be	jmp okout	; l7db
 	.)
 
 

@@ -39,7 +39,7 @@ l1511	cli
 	; overflow
 l1520	lda #$0d		; invisible
 	ldy #$16		; "BAD"
-	jmp badout-offset	; 
+	jmp badout 
 
 	; compare with target value $066c
 l1529	lda ptr1+1
@@ -50,7 +50,7 @@ l1529	lda ptr1+1
 	bne l1520
 
 	; ok
-	jmp okout-offset	; l7db
+	jmp okout		; l7db
 	.)
 
 
