@@ -1,0 +1,141 @@
+
+        ; ----------------------------------
+        ; FPLA II test
+        ;
+        ;
+test_fpla
+        .(      
+        ; we have an 8x96
+
+
+        lda #$80
+l15aa   sta $fff0               ; enable 8x96 mapping
+
+        sta cnt                 ; store tmp
+        and #$84                ; lower block select
+        clc
+        adc #$b0                ; results in either $30 or $34
+        sta $b000               ; last 4k page of lower mapped block
+
+        lda cnt                 ; tmp
+        and #$88                ; upper block select
+        clc
+        adc #$c0                ; results in either $40 or $44
+        sta $c000               ; first 4k page of upper mapped block
+
+        lda cnt
+        eor #$0c                ; change both block selects
+        cmp #$80                ; are we through yet with both values?
+        bne l15aa               ; no, loop
+
+        sta cnt                 ; store #$80 in tmp as start value
+l15cb   sta $fff0               ; set block config
+
+	ldx #0			; test situation
+
+        and #$10
+        bne l1640               ; if bit 4 (reserved) is set, skip test
+
+        ; check lower block
+        lda cnt
+        and #$84
+        clc
+        adc #$b0
+        eor $b000
+        bne l1650               ; error
+	inx			; next errcode
+        ; check upper block
+        lda cnt
+        and #$88
+        clc
+        adc #$c0
+        eor $c000
+        bne l1650               ; error
+	inx			; next errcode
+
+        ; check I/O peekthrough
+        ; Note: e84f in mapped block has been set above to #$55
+        lda cnt
+        and #$40                ; do we have I/O peek through?
+        beq l1604               ; no then skip
+
+        eor cnt                 ; disable mapping
+        sta $fff0
+        lda $e84f               ; load VIA port A
+        pha
+        lda cnt                 ; enable mapping
+        sta $fff0
+        pla
+        eor $e84f               ; compare VIA port A
+        beq l1650               ; same then BAD
+	inx			; next errcode
+
+        ; check screen peekthrough
+        ; note: 85a0 has been set to #$55 above in BLOCK test
+l1604   lda cnt
+        and #$20                ; do we have screen peek through?
+        beq l161e               ; no then skip
+
+        eor cnt
+        sta $fff0               ; disable mapping 
+        lda $85a0               ; load screen location value
+        pha
+        lda cnt
+        sta $fff0               ; enable mapping
+        pla
+        eor $85a0               ; compare
+        beq l1650               ; same then BAD
+	inx			; next errcode
+
+        ; check write protect lower block
+l161e   lda cnt
+        and #$01                ; do we have write protect?
+        beq l1630               ; no, then skip
+
+        lda #$aa
+        sta $b000               ; write pattern
+        lda $b000
+        eor #$aa                ; compare pattern
+        beq l1650               ; same - write was successful -> BAD
+	inx			; next errcode
+        ; check write protect upper block
+l1630   lda cnt
+        and #$02                ; do we have write protect?
+        beq l1640               ; no then skip
+
+        lda #$aa
+        sta $c000               ; write pattern
+        eor $c000               ; compare pattern
+        beq l1650               ; same - write was successful -> BAD
+	inx			; next errcode
+
+        ; next configuration value
+l1640   inc cnt
+	beq done
+        lda cnt                 ; are we done yet?
+        jmp l15cb               ; no, loop
+done
+        ; disable mapping, OK
+        lda #$60
+        sta $fff0
+        jsr okout-offset        ; l7db
+        bne l165c
+
+        ; disable mapping, BAD
+l1650   ldy #$60
+        sty $fff0
+	
+	lda cnt
+	jsr hexout-offset
+	txa
+	jsr hexout-offset
+	lda #" "
+	jsr chrout-offset
+
+        lda #$0d
+        ldy #$16                ; "BAD"
+        jsr badout-offset       ; l7c8
+
+l165c   rts
+        .)
+

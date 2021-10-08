@@ -1,0 +1,101 @@
+
+	.(
+
+	; actual code to init
+	ldx #$ff
+	txs
+	stx tmp1	; XOR value ($ff)
+	jsr xcopy	; copy code to $200-$aff with XOR
+	jsr xcomp	; check copied code
+	bne l10b1
+	inc tmp1	; next XOR value($00)
+	jsr xcopy	
+	jsr xcomp
+	bne l10b1
+l10ae	jmp $0200	; jump to code copied from $1162
+
+        ; DIAGNOSTIC RAM BAD: BIT"
+l1138   .byt "DIA"              ; $44,$49,$41
+        .byt "GNO"              ; $47,$4e,$4f
+        .byt "STI"              ; $53,$54,$49
+        .byt "C R"              ; $43,$20,$52
+        .byt "AM "              ; $41,$4d,$20
+        .byt "BAD"              ; $42,$41,$44
+        .byt ": B"              ; $3a,$20,$42
+        .byt "IT", 0            ; $49,$54,$00
+
+	; write error message to screen
+l10b1	.(
+	tax
+l10b2	lda l1138,y
+	beq enderr
+	ora #$80
+	sta $8000,y
+	iny
+	bne l10b2
+	.)
+
+	;.byt $f0,$c5	; TODO: remove
+
+	; called from init (1)
+	; copy code from $1162-1a61 to $0200-0aff
+	; XORing bit with $20 in the process
+xcopy	.(
+	lda #<l1162	; $62
+	sta ptr1
+	lda #>l1162	; $11
+	sta ptr1+1
+	lda #$00
+	sta ptr2
+	lda #$02
+	sta ptr2+1
+	ldy #$00
+l10d3	lda (ptr1),y
+	eor tmp1
+	sta (ptr2),y
+	iny
+	bne l10d3
+l10dc	inc ptr1+1
+	inc ptr2+1
+	lda #>endofprg+255
+	cmp ptr2+1
+	bne l10d3
+l10e6	rts
+	.)
+
+	; called from init (2)
+	; compare the code from $1162-$1a61 with $0200-$0aff 
+	; XORing with $20 in the process
+	;
+	; note that the caller actually checks the Z-flag,
+	; but this is always set, as there is a program bug
+	; in the error exit - it jumps to where LDY is cleared,
+	; which sets the Z-flag. 
+xcomp	.(
+	lda #<l1162	; $62
+	sta ptr1
+	lda #>l1162	; $11
+	sta ptr1+1
+	lda #$00
+	sta ptr2
+	lda #$02
+	sta ptr2+1
+	ldy #$00
+l10f9	lda (ptr1),y
+	eor tmp1
+	eor (ptr2),y
+	bne l110e	; -> error exit
+	iny
+	bne l10f9
+	inc ptr1+1
+	inc ptr2+1
+	lda #>endofprg+255
+	eor ptr2+1
+	bne l10f9
+l110e	ldy #$00
+	rts
+	.)
+
+	.)
+
+

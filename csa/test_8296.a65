@@ -1,0 +1,59 @@
+
+        ; ------------------------------
+        ; check 8x96 memory
+
+test_8296
+        .(
+        ; 8x96  
+l129c   ; AC param is blockno
+        sta blkno               ; block counter
+
+        ; loop for the four blocks
+l12a8   
+        ldx blkno
+        lda l1881-offset,x      ; 8x96 config register
+        sta $fff0
+        lda l1885-offset,x      ; start page of memory to test
+        sta memp1
+        lda l1889-offset,x      ; end page of memory to test
+        sta memp1+1
+
+        inc blkno
+        jsr memtest-offset      ; l7ef
+        pha                     ; zero = ok, non-z = error
+
+        ; note these two locations are checked in the FPLA test below
+        ; with the peekthrough values!
+        lda #$55
+        sta $e84f               ; ... the userport, or ...
+        sta $85a0               ; ... start of screen line 18
+       ; disable 8x96
+       lda #$60                ; disable 8x96 extension
+       sta $fff0
+       pla
+       ; print result
+       beq l12e6
+
+l12e1  jsr badbit-offset       ; l7bf
+       bne l12e9
+
+l12e6  jsr okout-offset        ; l7db
+l12e9   
+	rts
+
+        ; 8296 block checks
+
+        ; $fff0 values for the four blocks
+l1881   .byt $80,$8c,$80
+        .byt $8c
+        ; start page of memory to test
+l1885   .byt $80,$80
+        .byt $c0,$c0
+        ; end page of memory to test
+l1889   .byt $bf
+        .byt $bf,$fe,$fe
+
+	.)
+
+
+

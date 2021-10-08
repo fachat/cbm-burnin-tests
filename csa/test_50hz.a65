@@ -81,10 +81,11 @@ l14b8	; calculate difference between second and first pass
 	lda #" "
 	jsr chrout-offset
 
-	lda ptr1+1
+	lda #MODE_2MHZ
 	bit mode
-	bpl slow
+	beq slow
 
+	lda ptr1+1
 	cmp #$07		; hi byte difference is 3?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is #$86 or #$87?
@@ -94,6 +95,7 @@ l14b8	; calculate difference between second and first pass
 	bcs l14d6		; no then error
 	bcc ok
 slow
+	lda ptr1+1
 	cmp #$03		; hi byte difference is 3?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is #$86 or #$87?
