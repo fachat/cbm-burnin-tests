@@ -25,11 +25,13 @@ mode	= $26			; bit 7: 1=2 MHz
 blkno	= $27			; block number for 8x96 test
 memp1	= $28			; memory test pointer
 pattrn	= $2a			; memory test pattern; will be increased each cycle (starts initialized by zp mem test)
+
 screen	= $2b			; start of screen ptr
 scrptr	= $2d			; current screen pointer
 lineptr	= $2f			; start of current line
 cols	= $31			; number of columns
 revfl	= $32			; reverse flag
+
 cycles	= $33			; 3 byte cycle counter
 
 testp	= $36			; pointer to current test
@@ -290,14 +292,21 @@ fast1
 	lda #"*"
 	jsr chrout
 
+	ldy #teststr-badstr
+	lda #0
+	jsr badout
+	ldy #4
+	lda (testp),y
+	tax
+	iny
+	lda (testp),y
+	jsr strout
+
+
 	lda #$1a
 	jsr gox
-;	lda scrptr	; to output pointer
-;	clc
-;	adc #$1a
-;	sta scrptr
 
-	ldy #4
+	ldy #6
 	lda (testp),y
 	pha		; first parameter
 	iny
@@ -305,10 +314,10 @@ fast1
 	tax		; second parameter
 	iny
 	lda (testp),y
-	sta ptr1
+	sta ptr1	; jmp pointer low
 	iny
 	lda (testp),y
-	sta ptr1+1
+	sta ptr1+1	; jmp pointer high
 
 	pla		; restore AC, XR has 2nd param
 	jsr jmpind
@@ -318,7 +327,7 @@ fast1
 	lda #" "
 	jsr chrout
 notest
-	lda #8
+	lda #10
 	clc
 	adc testp
 	sta testp
@@ -377,144 +386,144 @@ jmpind	jmp (ptr1)
 tests
 	; RAM $0200-$7FFF (Actually $endofprg-, as it is destructive and should not overwrite this code)
 	.byt 0,7
-	;.word $8230		; "*"
 	.byt 0, MODE_ANY
+	.word m_sram
 	.byt >(endofprg+255), $7f ; start page, end page
 	.word test_ram
 
 	; RAM $8000-$8FFF Screen memory 
 	; run on uPET, CS/A and 8296
 	.byt 0,8
-	;.word $8280		; "*"
 	.byt 0,MODE_UPET+MODE_CSA+MODE_8296
+	.word m_vram4
 	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$87FF Screen memory 
 	; run on 8032 (just ignore uPET, CS/A and 8296 as well)
 	.byt 0,8
-	;.word $8280		; "*"
 	.byt MODE_40COL+MODE_UPET+MODE_CSA+MODE_8296, MODE_ANY
+	.word m_vram2
 	.byt 0,8		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$83FF Screen memory 
 	.byt 0,8
-	;.word $8280		; "*"
 	.byt MODE_UPET+MODE_CSA+MODE_8296, MODE_40COL
+	.word m_vram1
 	.byt 0,4		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; ----
 	; 8296 block tests
 	.byt 0,9
-	;.word $82d0		; "*"
 	.byt 0, MODE_8296
+	.word m_96_0
 	.byt 0,0		; blockno
 	.word test_8296
 
 	.byt 0,10
-	;.word $8320		; "*"
 	.byt 0, MODE_8296
+	.word m_96_1
 	.byt 1,0		; blockno
 	.word test_8296
 
 	.byt 0,11
-	;.word $8370		; "*"
 	.byt 0, MODE_8296
+	.word m_96_2
 	.byt 2,0		; blockno
 	.word test_8296
 
 	.byt 0,12
-	;.word $83c0		; "*"
 	.byt 0, MODE_8296
+	.word m_96_3
 	.byt 3,0		; blockno
 	.word test_8296
 
 	; 8296 FPLA MMU
 	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
 	.byt 0,13
-	;.word $8410		; "*"
 	.byt 0, MODE_8296
+	.word m_96_mm
 	.byt 0,0		; blockno
 	.word test_fpla
 
 	; ----
 	; ROM BASIC & KERNAL
 	.byt 40,7
-	;.word $82a8		; "*"
 	.byt 0, MODE_ANY
+	.word m_kern
 	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; ROM EDITOR
 	.byt 40,8
-	;.word $8258		; "*"
 	.byt 0, MODE_ANY
+	.word m_edit
 	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; IEEE488
 	.byt 40,10
-	;.word $8348		; "*"
 	.byt 0, MODE_ANY
+	.word m_ieee
 	.byt 0,0		; parameters
 	.word test_ieee	; exec addr
 
 	; Userport
 	.byt 40,11
-	;.word $8398		; "*"
 	.byt 0, MODE_ANY
+	.word m_user
 	.byt 0,0		; parameters
 	.word test_userp	; exec addr
 
 	; 50hz
 	.byt 40,14
-	;.word $8528		; "*"
 	.byt 0, MODE_ANY
+	.word m_50hz
 	.byt 0,0		; parameters
 	.word test_50hz	; exec addr
 
 	; Timer 1
 	.byt 40,15
-	;.word $8488		; "*"
 	.byt 0, MODE_ANY
+	.word m_t1
 	.byt 0,0		; parameters
 	.word test_timer1 ; exec addr
 
 	; Timer 1
 	.byt 40,16
-	;.word $84d8		; "*"
 	.byt 0, MODE_ANY
+	.word m_t2
 	.byt 0,0		; parameters
 	.word test_timer2 ; exec addr
 
 	; ----
 	; CS/A Video RAM $010000 - must not cross 16 boundaries
 	.byt 0,14
-	;.word $8460		; "*"
 	.byt 0,MODE_CSA
+	.word m_csa_vm1
 	.byt $18,$27		; start page in bank 1, number of pages -1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.byt 0,15
-	;.word $84b0		; "*"
 	.byt 0,MODE_CSA
+	.word m_csa_vm2
 	.byt $40,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.byt 0,16
-	;.word $8500		; "*"
 	.byt 0,MODE_CSA
+	.word m_csa_vm3
 	.byt $80,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.byt 0,17
-	;.word $8550		; "*"
 	.byt 0,MODE_CSA
+	.word m_csa_vm4
 	.byt $c0,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 #endif
@@ -572,8 +581,6 @@ l172b	lda badstr,y
 	jsr chrout
 	bpl l172b
 l1734	pla
-;	jsr chrout
-;	lda #$0d
 	jmp chrout
 
 	; output OK
@@ -617,10 +624,31 @@ badstr	.byt $12, "BAD BIT", ":"+$80, 0
 	.byt $12, "BAD ROM: P", "."+$80
 	.byt $12, "BA", "D"+$80
 	.byt $12, "IEEE BAD: DI", "O"+$80	; $44,$49,$cf
+teststr	.byt "TEST:"," "+$80
 
 	; CRTC init parameter
 l1150 	.byt 126, 80, 100
 
+m_sram		.asc "RAM 0200-7FFF",0
+m_vram4		.asc "RAM 8000-8FFF",0
+m_vram2		.asc "RAM 8000-87FF",0
+m_vram1		.asc "RAM 8000-83FF",0
+m_edit		.asc "ROM EDITOR",0
+m_kern		.asc "ROM KERNAL & BASIC",0
+m_ieee		.asc "IEEE 488 BUS",0
+m_user		.asc "USER PORT",0
+m_t1		.asc "TIMER 1",0
+m_t2		.asc "TIMER 2",0
+m_50hz		.asc "50 HZ IRQ",0
+m_96_0		.asc "8X96 BLOCK 0",0
+m_96_1		.asc "8X96 BLOCK 1",0
+m_96_2		.asc "8X96 BLOCK 2",0
+m_96_3		.asc "8X96 BLOCK 3",0
+m_96_mm		.asc "8X96 FPLA II",0
+m_csa_vm1	.asc "VMEM 10000-13FFF",0
+m_csa_vm2	.asc "VMEM 14000-17FFF",0
+m_csa_vm3	.asc "VMEM 18000-1BFFF",0
+m_csa_vm4	.asc "VMEM 1C000-1FFFF",0
 
 initmsg
 	.byt $92		; REV OFF
@@ -630,34 +658,7 @@ initmsg
 	.byt $12,$20,"DIAGNOSTIC "
 m_name	.byt "8032 " 
 	.byt "  V4.0   "
-	.byt "DATE: 08-10-2021 CYCLES: 000000 "
-	.byt 13,13,13		; 
-	.byt 13,13,13
-	.byt 13 
-	.byt " TEST: RAM 0200-7FFF",13
-	.byt " TEST: RAM 8000-8FFF",
-	.byt 13
-	.byt " TEST: 8X96 BLOCK 0",13
-	.byt " TEST: 8X96 BLOCK 1",13
-	.byt " TEST: 8X96 BLOCK 2",13
-	.byt " TEST: 8X96 BLOCK 3",13
-	.byt " TEST: FPLA II",13
-	.byt " TEST: VMEM 10000-13FFF",13
-	.byt " TEST: VMEM 14000-17FFF",13
-	.byt " TEST: VMEM 18000-1BFFF",13
-	.byt " TEST: VMEM 1C000-1FFFF",13
-	.byt 13
-	.byt $13		; move back to line 7 for second column
-	.byt " TEST: ROM EDITOR",13
-	.byt " TEST: ROM KERNAL & BASIC"
-	.byt $0d,$0d
-	.byt " TEST: IEEE 488 BUS",13
-	.byt " TEST: USER PORT"
-	.byt $0d,$0d,$0d
-	.byt " TEST: TIMER 1",13
-	.byt " TEST: TIMER 2",13
-	.byt " TEST: 50 HZ IRQ",13
-	.byt $0d,$00
+	.byt "DATE: 08-10-2021 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"

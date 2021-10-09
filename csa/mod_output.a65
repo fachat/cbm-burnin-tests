@@ -1,4 +1,16 @@
 
+strout	.(
+	sta ptr2+1
+	stx ptr2
+	ldy #0
+cloop	lda (ptr2),y
+	beq end
+	jsr chrout
+	iny
+	bne cloop
+end	rts
+	.)
+
 iniscr	.(
 	lda #$80
 	sta screen+1

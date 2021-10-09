@@ -6,8 +6,12 @@ test_timer2:
 	; Test by setting timer to $8080 and counting
 	; loops (cycles) until interrupt happens
 	.(
+	lda #0
+	sta $e84b		; one-shot timers only
+
 	lda #$7f
 	sta $e84e		; disable all VIA interrupts
+	sta $e84d		; clear all interrupt flags
 	lda #$a0
 	sta $e84e		; enable T2 interrupt
 
@@ -36,12 +40,18 @@ l1564	cli
 	bne l1564
 
 	; overflow
-l1574	lda #$0d
+l1574	lda #$00
 	ldy #$16		; "BAD"
 	jmp badout	; l7c8
 
 	; compare counter snapshot from interrupt with target $066c
 l157d	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+	jsr spout
+
+	lda ptr1+1
 	cmp #$06
 	bne l1574
 	lda ptr1

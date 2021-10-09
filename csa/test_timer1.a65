@@ -6,8 +6,11 @@ test_timer1:
 	; Test by setting timer to $8080 and counting
 	; loops (cycles) until interrupt happens
 	.(
+	lda #0
+	sta $e84b		; single shot timers
 	lda #$7f
 	sta $e84e		; disable all VIA interrupts
+	sta $e84d		; clr all interrupt flags
 	lda #$c0
 	sta $e84e		; enable T1 interrupt
 
@@ -37,12 +40,18 @@ l1511	cli
 	bne l1511
 
 	; overflow
-l1520	lda #$0d		; invisible
+l1520	lda #$00		; invisible
 	ldy #$16		; "BAD"
 	jmp badout 
 
 	; compare with target value $066c
 l1529	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+	jsr spout
+
+	lda ptr1+1
 	cmp #$06
 	bne l1520
 	lda ptr1
