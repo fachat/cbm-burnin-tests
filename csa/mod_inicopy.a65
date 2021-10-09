@@ -12,7 +12,7 @@
 	jsr xcopy	
 	jsr xcomp
 	bne l10b1
-l10ae	jmp $0200	; jump to code copied from $1162
+l10ae	jmp $0200	; jump to code copied from $1162 (startofprg)
 
         ; DIAGNOSTIC RAM BAD: BIT"
 l1138   .byt "DIA"              ; $44,$49,$41
@@ -38,12 +38,12 @@ l10b2	lda l1138,y
 	;.byt $f0,$c5	; TODO: remove
 
 	; called from init (1)
-	; copy code from $1162-1a61 to $0200-0aff
+	; copy code from $1162-1a61 (startofprg) to $0200-0aff
 	; XORing bit with $20 in the process
 xcopy	.(
-	lda #<l1162	; $62
+	lda #<startofprg	; $62
 	sta ptr1
-	lda #>l1162	; $11
+	lda #>startofprg	; $11
 	sta ptr1+1
 	lda #$00
 	sta ptr2
@@ -64,7 +64,7 @@ l10e6	rts
 	.)
 
 	; called from init (2)
-	; compare the code from $1162-$1a61 with $0200-$0aff 
+	; compare the code from $1162-$1a61 (startofprg) with $0200-$0aff 
 	; XORing with $20 in the process
 	;
 	; note that the caller actually checks the Z-flag,
@@ -72,9 +72,9 @@ l10e6	rts
 	; in the error exit - it jumps to where LDY is cleared,
 	; which sets the Z-flag. 
 xcomp	.(
-	lda #<l1162	; $62
+	lda #<startofprg	; $62
 	sta ptr1
-	lda #>l1162	; $11
+	lda #>startofprg	; $11
 	sta ptr1+1
 	lda #$00
 	sta ptr2

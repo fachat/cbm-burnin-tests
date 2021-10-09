@@ -84,15 +84,10 @@ l101a	sta $8000,y
 	; the following code is copied to $0200-...
 
 	; clear bytes 1950-1961 on 80 column screen?
-l1162	
+
+startofprg:
+
 	*=$0200
-	.(
-	ldx #$0b
-l1164	lda #$20
-	sta $879e,x 
-	dex
-	bpl l1164
-	.)
 
 #include "mod_mode.a65"
 
