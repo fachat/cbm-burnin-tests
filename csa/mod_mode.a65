@@ -101,6 +101,7 @@ no8296	.)
 	lda mode
 	and #MODE_CSA+MODE_UPET+MODE_8296
 	bne no4032
+	ldx $8400
 	lda #0
 	sta $8400
 	cmp $8400
@@ -112,7 +113,8 @@ no8296	.)
 is4032	lda mode
 	ora #MODE_40COL
 	sta mode
-no4032	.)
+no4032	stx $8400
+	.)
 
 	;---------------------------------------
 	; put mode info on screen

@@ -1,3 +1,60 @@
+
+iniscr	.(
+	lda #$80
+	sta screen+1
+	lda #0
+	sta screen
+	rts
+	.)
+
+	; -----------------------------
+	; go to position a=col, y=line
+	; make that column the target for CR
+goxy	.(
+	pha
+	sty tmp1
+	ldx #8
+	lda #0
+	sta revfl
+	sta lineptr+1
+gloop	asl
+	rol lineptr+1
+	asl tmp1
+	bcc no
+	clc
+	adc cols
+	bcc no
+	inc lineptr+1
+no	dex
+	bne gloop
+	clc
+	adc screen
+	sta lineptr
+	lda lineptr+1
+	adc screen+1
+	sta lineptr+1
+	pla
+	clc
+	adc lineptr
+	sta lineptr
+	sta scrptr
+	lda #0
+	adc lineptr+1
+	sta lineptr+1
+	sta scrptr+1
+	rts
+	.)
+
+gox	.(
+	clc
+	adc lineptr
+	sta scrptr
+	lda #0
+	sta revfl
+	adc lineptr+1
+	sta scrptr+1
+	rts
+	.)
 	
 	; -----------------------------
 	; hexout
@@ -31,28 +88,24 @@ chrout	.(
 	cmp #$93		; clear screen
 	bne l16df
 
-	; clear screen
-l16ab	lda screen+1		; set ptr to start of screen
-	sta scrptr+1
+	; clear screen (8 mem pages starting from (screen)
 	lda screen
 	sta scrptr
-l16b3	ldy #$00
-	lda #$20
-l16b7	sta (scrptr),y
-	iny
-	cpy cols		; number of columns
-	bne l16b7
-l16be	clc
-	lda scrptr
-	adc #$50		; plus 80 for next line
+	lda screen+1
 	sta scrptr
+	ldy #0
+	lda #" "
+clr1	sta (scrptr),y
+	iny
+	bne clr1
+	inc scrptr+1
 	lda scrptr+1
-	adc #$00
-	sta scrptr+1
-	cmp #$88		; are we done?
-	bcc l16b3		; no, loop
+	sec
+	sbc screen+1
+	cmp #8
+	bcc clr1
 
-l16cf	lda screen+1		; scr ptr to start of screen
+lhome	lda screen+1		; scr ptr to start of screen
 	sta scrptr+1		; scr ptr
 	sta lineptr+1		; start of line
 	lda screen
@@ -65,7 +118,7 @@ l16db	ldy tmp1		; restore Y
 
 	; other screen codes
 l16df	cmp #$13
-	beq l16cf		; HOME
+	beq lhome		; HOME
 
 	cmp #$0d		; CR
 	bne l16fc
@@ -73,14 +126,14 @@ l16df	cmp #$13
 	; carriage return
 l16e7	clc
 	lda lineptr		; start of line ptr
-	adc #$50		; plus 80
+	adc cols
+	sta lineptr
 	sta scrptr		; to scr ptr
-	sta lineptr		; and new start of line
 	lda #$00		; clr REV flag
 	sta revfl
 	adc lineptr+1
+	sta lineptr+1
 	sta scrptr+1		; scr ptr hi
-	sta lineptr+1		; start of line hi
 	bne l16db
 
 	

@@ -16,7 +16,7 @@ l13b1	dey			; next value
 l13b5	jsr hexout
 	jsr spout	
 	ldy #$16		; "BAD" text
-	lda #$0d		; invisible char after BAD
+	lda #$00		; invisible char after BAD
 	jmp badout	; l7c8
 
 l13be	jmp okout	; l7db

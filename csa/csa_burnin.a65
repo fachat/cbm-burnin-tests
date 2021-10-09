@@ -126,10 +126,7 @@ l1193	lda #$60	; disable 8x96 mapping
 	sta cycles+2
 
 	; init start of screen for chrout
-	lda #$80
-	sta screen+1			; chrout scr hi ptr
-	lda #$00
-	sta screen			; chrout scr lo ptr
+	jsr iniscr
 
 	; ------------------------------
 	; clear screen
@@ -139,28 +136,37 @@ l1193	lda #$60	; disable 8x96 mapping
 	; ------------------------------
 	; output banner message
 	.(
-	lda #$28		; 40 column?
+	lda mode
+	and #MODE_40COL
+	bne narrow
+	lda #80
+	.byt $2c
+narrow	lda #40		; 40 column?
 	sta cols
 
 	lda #>initmsg	;$09
 	sta ptr1+1
 	lda #<initmsg	;$45
 	sta ptr1
-	ldy #$00
-l11bb	lda (ptr1),y
+l11bb	ldy #$00
+	lda (ptr1),y
 	beq l11d8
-	pha
 	cmp #$13
 	bne l11cc
 	; on marker, move to $258 = char 600 = MIDDLE of line 7
 	; to print the right column of diag messages
-	lda #$82
-	sta screen+1
-	lda #$58
-	sta screen
-l11cc	pla
-	jsr chrout	; l742
-	inc ptr1
+
+;	lda #$82
+;	sta screen+1
+;	lda #$58
+;	sta screen
+	ldy #7
+	lda #40
+	jsr goxy
+	jmp lnext
+
+l11cc	jsr chrout	; l742
+lnext	inc ptr1
 	bne l11bb
 l11d4	inc ptr1+1
 	bne l11bb
@@ -168,16 +174,19 @@ l11d4	inc ptr1+1
 
 	; ------------------------------
 	; print out screen codes 0-255
-l11d8	lda #$80
-	sta scrptr+1	; screen ptr hi
-	sta lineptr+1	; start of line
-	sta screen+1	; chrout scr ptr hi
-	lda #$a8
-	sta scrptr	; screen ptr lo
-	sta screen	; chrout scr ptr lo
-	sta lineptr	; start of line
-	lda #$40	; 64 columns?
-	sta cols
+l11d8	ldy #2
+	lda #8
+	jsr goxy
+;	lda #$80
+;	sta scrptr+1	; screen ptr hi
+;	sta lineptr+1	; start of line
+;	sta screen+1	; chrout scr ptr hi
+;	lda #$a8
+;	sta scrptr	; screen ptr lo
+;	sta screen	; chrout scr ptr lo
+;	sta lineptr	; start of line
+	;lda #$40	; 64 columns?
+	;sta cols
 
 	ldy #$00
 	ldx #$00
@@ -253,15 +262,20 @@ setcrtc	pha
 fast1
 	.)
 
-	ldy #1
-	; "*" on screen
+	ldy #0
 	lda (testp),y
-	sta scrptr+1
+	iny
+	ora (testp),y
+	beq endloop
+
 	dey
 	lda (testp),y
-	sta scrptr
-	ora scrptr+1
-	beq endloop
+	pha
+	iny
+	lda (testp),y
+	tay
+	pla
+	jsr goxy
 
 	ldy #2
 	lda (testp),y
@@ -273,14 +287,15 @@ fast1
 	and (testp),y
 	beq notest
 
-	ldy #0
 	lda #"*"
-	sta (scrptr),y
+	jsr chrout
 
-	lda scrptr	; to output pointer
-	clc
-	adc #$1a
-	sta scrptr
+	lda #$1a
+	jsr gox
+;	lda scrptr	; to output pointer
+;	clc
+;	adc #$1a
+;	sta scrptr
 
 	ldy #4
 	lda (testp),y
@@ -298,15 +313,10 @@ fast1
 	pla		; restore AC, XR has 2nd param
 	jsr jmpind
 
-	ldy #1
-	lda (testp),y
-	sta scrptr+1
-	dey
-	lda (testp),y
-	sta scrptr
-	ldy #0
+	lda #0
+	jsr gox
 	lda #" "
-	sta (scrptr),y
+	jsr chrout
 notest
 	lda #8
 	clc
@@ -337,10 +347,13 @@ endloop	clc
 	cld
 
 	; print cycle counter on screen
-	lda #$80		; scr pointer
-	sta scrptr+1
+	ldy #0
 	lda #$3c
-	sta scrptr
+	jsr goxy
+;	lda #$80		; scr pointer
+;	sta scrptr+1
+;	lda #$3c
+;	sta scrptr
 
 	lda #$80		; REV flag
 	sta revfl
@@ -362,125 +375,145 @@ jmpind	jmp (ptr1)
 	; 	if any bit from byte 3 is set, do test 
 	;	BEQ notest
 tests
-	; RAM $0200-$7FFF (Actually $0b00-, as it is destructive and should not overwrite this code)
-	.word $8230		; "*"
+	; RAM $0200-$7FFF (Actually $endofprg-, as it is destructive and should not overwrite this code)
+	.byt 0,7
+	;.word $8230		; "*"
 	.byt 0, MODE_ANY
 	.byt >(endofprg+255), $7f ; start page, end page
 	.word test_ram
 
 	; RAM $8000-$8FFF Screen memory 
 	; run on uPET, CS/A and 8296
-	.word $8280		; "*"
+	.byt 0,8
+	;.word $8280		; "*"
 	.byt 0,MODE_UPET+MODE_CSA+MODE_8296
 	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$87FF Screen memory 
 	; run on 8032 (just ignore uPET, CS/A and 8296 as well)
-	.word $8280		; "*"
+	.byt 0,8
+	;.word $8280		; "*"
 	.byt MODE_40COL+MODE_UPET+MODE_CSA+MODE_8296, MODE_ANY
 	.byt 0,8		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$83FF Screen memory 
-	.word $8280		; "*"
+	.byt 0,8
+	;.word $8280		; "*"
 	.byt MODE_UPET+MODE_CSA+MODE_8296, MODE_40COL
 	.byt 0,4		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; ----
 	; 8296 block tests
-	.word $82d0		; "*"
+	.byt 0,9
+	;.word $82d0		; "*"
 	.byt 0, MODE_8296
 	.byt 0,0		; blockno
 	.word test_8296
 
-	.word $8320		; "*"
+	.byt 0,10
+	;.word $8320		; "*"
 	.byt 0, MODE_8296
 	.byt 1,0		; blockno
 	.word test_8296
 
-	.word $8370		; "*"
+	.byt 0,11
+	;.word $8370		; "*"
 	.byt 0, MODE_8296
 	.byt 2,0		; blockno
 	.word test_8296
 
-	.word $83c0		; "*"
+	.byt 0,12
+	;.word $83c0		; "*"
 	.byt 0, MODE_8296
 	.byt 3,0		; blockno
 	.word test_8296
 
 	; 8296 FPLA MMU
 	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
-	.word $8410		; "*"
+	.byt 0,13
+	;.word $8410		; "*"
 	.byt 0, MODE_8296
 	.byt 0,0		; blockno
 	.word test_fpla
 
 	; ----
 	; ROM BASIC & KERNAL
-	.word $82a8		; "*"
+	.byt 40,7
+	;.word $82a8		; "*"
 	.byt 0, MODE_ANY
 	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; ROM EDITOR
-	.word $8258		; "*"
+	.byt 40,8
+	;.word $8258		; "*"
 	.byt 0, MODE_ANY
 	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; IEEE488
-	.word $8348		; "*"
+	.byt 40,10
+	;.word $8348		; "*"
 	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_ieee	; exec addr
 
 	; Userport
-	.word $8398		; "*"
+	.byt 40,11
+	;.word $8398		; "*"
 	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_userp	; exec addr
 
 	; 50hz
-	.word $8528		; "*"
+	.byt 40,14
+	;.word $8528		; "*"
 	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_50hz	; exec addr
 
 	; Timer 1
-	.word $8488		; "*"
+	.byt 40,15
+	;.word $8488		; "*"
 	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_timer1 ; exec addr
 
 	; Timer 1
-	.word $84d8		; "*"
+	.byt 40,16
+	;.word $84d8		; "*"
 	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_timer2 ; exec addr
 
 	; ----
 	; CS/A Video RAM $010000 - must not cross 16 boundaries
-	.word $8460		; "*"
+	.byt 0,14
+	;.word $8460		; "*"
 	.byt 0,MODE_CSA
 	.byt $18,$27		; start page in bank 1, number of pages -1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
-	.word $84b0		; "*"
+	.byt 0,15
+	;.word $84b0		; "*"
 	.byt 0,MODE_CSA
 	.byt $40,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
-	.word $8500		; "*"
+	.byt 0,16
+	;.word $8500		; "*"
 	.byt 0,MODE_CSA
 	.byt $80,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
-	.word $8550		; "*"
+	.byt 0,17
+	;.word $8550		; "*"
 	.byt 0,MODE_CSA
 	.byt $c0,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
@@ -539,8 +572,8 @@ l172b	lda badstr,y
 	jsr chrout
 	bpl l172b
 l1734	pla
-	jsr chrout
-	lda #$0d
+;	jsr chrout
+;	lda #$0d
 	jmp chrout
 
 	; output OK
