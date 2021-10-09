@@ -106,7 +106,7 @@ ok
 	jsr okout		; OK
 	bne l14dd
 
-l14d6 	lda #$0d
+l14d6 	lda #$00
 	ldy #$16		; "BAD"
 	jsr badout		; l7c8
 

@@ -1,7 +1,7 @@
 
 strout	.(
-	sta ptr2+1
-	stx ptr2
+	sta ptr2
+	stx ptr2+1
 	ldy #0
 cloop	lda (ptr2),y
 	beq end
