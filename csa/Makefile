@@ -1,6 +1,6 @@
 
 
-csa_burnin: csa_burnin.a65 test_*
+csa_burnin: csa_burnin.a65 test_*.a65 mod_*.a65
 	xa -M -l $@.lab -o $@ $<
 
 csa_burnin.hex: 

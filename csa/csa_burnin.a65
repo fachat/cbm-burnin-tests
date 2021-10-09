@@ -5,7 +5,7 @@
 #define	MODE_8296	%00100000
 #define	MODE_40COL	%00010000
 #define	MODE_2MHZ	%00001000
-	
+#define	MODE_ANY	%00000001	
 
 #define	SYSPORT		$efe0
 #define	SYS_IRQEN	%00000010
@@ -93,11 +93,13 @@ startofprg:
 
 	
 	;---------------------------------------
-	; to be replaced/removed
+	; to be replaced/removed (once my CS/A ROM auto-detects speed and sets CRTC correctly)
 	.(
 	lda mode
-	and #MODE_2MHZ
-	beq slow1
+	and #MODE_2MHZ+MODE_CSA
+	cmp #MODE_2MHZ+MODE_CSA
+	bne slow1
+
 	; set CRTC and video
 	ldy #$00
 l1008	sty $e880
@@ -203,8 +205,9 @@ l11ff	lda #$0d
         lda #>irq        ; $08
         sta $91
 
-	; ------------------------------
-	; test loop
+	; =============================
+	; infinite test loop
+	;
 
 loop	.(
 	lda #<tests
@@ -217,28 +220,28 @@ loop	.(
 	lda #$10
 	sta $e881
 
+	; ------------------------------
+	; loop over tests fitting to the mode
 test	
-	ldy #1
-	; "*" on screen
-	lda (testp),y
 
-/* only needed for 1MHz 40 col screen */
-#if 0
+	/* only needed for 1MHz 40 col CS/A screen */
 	.(
-	pha	
 	lda mode
 	and #MODE_40COL
-	cmp #MODE_40COL
-	bne fast1
-	pla
-	pha
-	cmp #$84
-	bcc lower
+	beq fast1
+
+	ldy #1
+	lda (testp),y
+	cmp #$84		; test prints on upper or lower screen half?
+	bcc lower		; lower memory (upper screen)
+
 	lda #$13
 	ldx #$e8
 	bne setcrtc
+
 lower	lda #$10
 	ldx #0
+
 setcrtc	pha
 	lda #12
 	sta $e880
@@ -247,9 +250,12 @@ setcrtc	pha
 	lda #13
 	sta $e880
 	stx $e881
-fast1	pla
+fast1
 	.)
-#endif
+
+	ldy #1
+	; "*" on screen
+	lda (testp),y
 	sta scrptr+1
 	dey
 	lda (testp),y
@@ -259,8 +265,11 @@ fast1	pla
 
 	ldy #2
 	lda (testp),y
-	eor mode
+	and mode
+	bne notest
 	iny
+	lda mode
+	ora #MODE_ANY
 	and (testp),y
 	beq notest
 
@@ -268,13 +277,12 @@ fast1	pla
 	lda #"*"
 	sta (scrptr),y
 
-	ldy #4
-	lda (testp),y
+	lda scrptr	; to output pointer
+	clc
+	adc #$1a
 	sta scrptr
-	iny
-	lda (testp),y
-	sta scrptr+1
-	iny 
+
+	ldy #4
 	lda (testp),y
 	pha		; first parameter
 	iny
@@ -300,7 +308,7 @@ fast1	pla
 	lda #" "
 	sta (scrptr),y
 notest
-	lda #10
+	lda #8
 	clc
 	adc testp
 	sta testp
@@ -349,32 +357,34 @@ jmpind	jmp (ptr1)
 
 	; -----------------------------
 	; test addresses, parameters etc
+	; byt 2/3 are mode masks:
+	; 	if any bit from byte 2 is set, ignore test
+	; 	if any bit from byte 3 is set, do test 
+	;	BEQ notest
 tests
 	; RAM $0200-$7FFF (Actually $0b00-, as it is destructive and should not overwrite this code)
 	.word $8230		; "*"
-	.byt 1,1
-	.word $824a
+	.byt 0, MODE_ANY
 	.byt >(endofprg+255), $7f ; start page, end page
 	.word test_ram
 
 	; RAM $8000-$8FFF Screen memory 
+	; run on uPET, CS/A and 8296
 	.word $8280		; "*"
 	.byt 0,MODE_UPET+MODE_CSA+MODE_8296
-	.word $829a
 	.byt 0,16		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$87FF Screen memory 
+	; run on 8032 (just ignore uPET, CS/A and 8296 as well)
 	.word $8280		; "*"
-	.byt MODE_40COL, MODE_40COL
-	.word $829a
+	.byt MODE_40COL+MODE_UPET+MODE_CSA+MODE_8296, MODE_ANY
 	.byt 0,8		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
 	; RAM $8000-$83FF Screen memory 
 	.word $8280		; "*"
-	.byt 0, MODE_40COL
-	.word $829a
+	.byt MODE_UPET+MODE_CSA+MODE_8296, MODE_40COL
 	.byt 0,4		; -, number of screen pages (4 = 4032, 8 = 80xx, 16 = 8296)
 	.word test_screenmem
 
@@ -382,25 +392,21 @@ tests
 	; 8296 block tests
 	.word $82d0		; "*"
 	.byt 0, MODE_8296
-	.word $82ea
 	.byt 0,0		; blockno
 	.word test_8296
 
 	.word $8320		; "*"
 	.byt 0, MODE_8296
-	.word $833a
 	.byt 1,0		; blockno
 	.word test_8296
 
 	.word $8370		; "*"
 	.byt 0, MODE_8296
-	.word $838a
 	.byt 2,0		; blockno
 	.word test_8296
 
 	.word $83c0		; "*"
 	.byt 0, MODE_8296
-	.word $83da
 	.byt 3,0		; blockno
 	.word test_8296
 
@@ -408,57 +414,49 @@ tests
 	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
 	.word $8410		; "*"
 	.byt 0, MODE_8296
-	.word $842a
 	.byt 0,0		; blockno
 	.word test_fpla
 
 	; ----
 	; ROM BASIC & KERNAL
 	.word $82a8		; "*"
-	.byt 1,1
-	.word $82c2
+	.byt 0, MODE_ANY
 	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; ROM EDITOR
 	.word $8258		; "*"
-	.byt 1,1
-	.word $8272
+	.byt 0, MODE_ANY
 	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
 	.word test_rom
 
 	; IEEE488
 	.word $8348		; "*"
-	.byt 1,1
-	.word $8362		; result on screen
+	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_ieee	; exec addr
 
 	; Userport
 	.word $8398		; "*"
-	.byt 1,1
-	.word $83b2		; result on screen
+	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_userp	; exec addr
 
 	; 50hz
 	.word $8528		; "*"
-	.byt 1,1
-	.word $8542		; result on screen
+	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_50hz	; exec addr
 
 	; Timer 1
 	.word $8488		; "*"
-	.byt 1,1
-	.word $84a2		; result on screen
+	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_timer1 ; exec addr
 
 	; Timer 1
 	.word $84d8		; "*"
-	.byt 1,1
-	.word $84f2		; result on screen
+	.byt 0, MODE_ANY
 	.byt 0,0		; parameters
 	.word test_timer2 ; exec addr
 
@@ -466,28 +464,24 @@ tests
 	; CS/A Video RAM $010000 - must not cross 16 boundaries
 	.word $8460		; "*"
 	.byt 0,MODE_CSA
-	.word $847a		; result on screen
 	.byt $18,$27		; start page in bank 1, number of pages -1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $84b0		; "*"
 	.byt 0,MODE_CSA
-	.word $84ca		; result on screen
 	.byt $40,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $8500		; "*"
 	.byt 0,MODE_CSA
-	.word $851a		; result on screen
 	.byt $80,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.word $8550		; "*"
 	.byt 0,MODE_CSA
-	.word $856a		; result on screen
 	.byt $c0,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 #endif
