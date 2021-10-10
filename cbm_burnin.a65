@@ -703,11 +703,11 @@ intvect	.byt $aa
 #include "test_userport.a65"
 
 	; 8296 extra memory and FPLA MMU
-#include "test_8296.a65"
-#include "test_fpla.a65"
+#include "8296/test_8296.a65"
+#include "8296/test_fpla.a65"
 
 	; CS/A65 Video card memory
-#include "test_vmem.a65"
+#include "csa/test_vmem.a65"
 
 endofprg:
 
