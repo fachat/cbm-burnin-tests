@@ -1,0 +1,103 @@
+
+	; this test test the MMU capability of mapping
+	; the uppermost 512k of the address space from 
+	; the BIOS' 512k SRAM
+	; it's not testing the memory itself, but the
+	; MMU mapping, i.e. it checks for mirrors etc
+
+
+	; test procedure:
+	; test all 128 blocks of 4k
+	; fill the first page of each block with a unique pattern per block
+	; then go back to the start and check if patterns are still there
+
+test_himap .(
+
+blk	=ptr2
+patt	=ptr2+1
+
+	; block pointer
+	lda #$40
+	sta ptr1+1
+	lda #0
+	sta ptr1
+
+	; start pattern
+	lda #$55
+	sta patt
+
+	; start block
+	lda #$80
+	sta blk
+
+	; fill pattern
+fill	lda blk
+	sta $eff4
+
+	ldy #0
+floop	lda patt
+	sta (ptr1),y
+
+	inc patt
+	iny
+	bne floop
+
+	; after 256 iterations patt has the same value
+	; so make it unique
+	inc patt
+	
+	; next block
+	inc blk
+	bne fill
+
+	; check
+
+	; start pattern
+	lda #$55
+	sta patt
+
+	; start block
+	lda #$80
+	sta blk
+	
+	; fill pattern
+check	lda blk
+	sta $eff4
+
+	ldy #0
+cloop	lda patt
+	cmp (ptr1),y
+	bne err
+
+	inc patt
+	iny
+	bne cloop
+
+	; after 256 iterations patt has the same value
+	; so make it unique
+	inc patt
+	
+	; next block
+	inc blk
+	bne check
+
+	jmp okout
+
+err	; output block
+	lda blk
+	jsr hexout
+	jsr spout
+	; output byte
+	tya
+	jsr hexout
+	jsr spout
+	; and memory content (what should be can be calculated from block/byte)
+	lda (ptr1),y
+	jsr hexout
+	jsr spout
+
+	lda #0
+	ldy #22
+	jmp badout
+	.)
+

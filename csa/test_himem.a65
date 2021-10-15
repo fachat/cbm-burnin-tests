@@ -1,0 +1,72 @@
+
+	; ------------------------------
+	; VRAM 
+	; test RAM with pattern check in memtest
+test_himem:
+	.(
+	sta memp1		; start page - parameter
+
+	; set MMU mapping	
+	tay
+	sty $eff4
+	cpy $eff4
+	bne badmmu
+	iny
+	sty $eff5
+	iny
+	sty $eff6
+	iny
+	sty $eff7
+
+	; set logical addr
+	lda #$40
+	sta memp1
+
+	txa
+	clc
+	adc memp1
+	sta memp1+1		; end page
+
+	; check the memory
+l1220	jsr memtest	; l7ef
+	bne l122a
+
+	; ok, no error
+	jsr okout	; l7db
+	bne end
+
+badmmu 	
+	lda #$12
+	jsr chrout
+	lda #"M"
+	jsr chrout
+	jsr chrout
+	lda #"U"
+	jsr chrout
+	jsr spout
+	ldy #$16
+	lda #13
+	jsr badout
+	bne end
+
+l122a	pha
+	txa
+	and #$3f
+	tax
+	pla
+	jsr badbitx	; l7bf
+
+end	; reset MMU
+	ldy #4
+	sty $eff4
+	iny
+	sty $eff5
+	iny
+	sty $eff6
+	iny
+	sty $eff7
+
+	rts
+	.)
+
+

@@ -1,0 +1,43 @@
+
+; note - code needs to be less than 4k
+
+#echo "csa_remap"
+
+
+FROM	=$0000
+TO	=$2000
+PAGES	=16
+
+	.(
+	; map to
+	lda #$10	; VMEM lowest block in MMU (bank 1)
+	sta $eff2	; TO mmu block 2
+
+	; copy stuff over
+	lda #0
+	sta ptr1
+	sta ptr2
+	lda #>FROM
+	sta ptr1+1
+	lda #>TO
+	sta ptr2+1
+
+	ldx #PAGES
+	ldy #0
+loop	lda (ptr1),y
+	sta (ptr2),y
+	iny
+	bne loop
+	inc ptr1+1
+	inc ptr2+1
+	dex
+	bne loop
+
+	; re-map VMEM to 
+	lda #$02
+	sta $eff2	; map old block 2 back to SRAM
+	lda #$10	
+	sta $eff0	; map first block (we're running in actually) to just copied VMEM
+	.)
+
+
