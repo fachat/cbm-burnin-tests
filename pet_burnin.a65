@@ -1,6 +1,6 @@
 
 ; if defined, copy the whole test program into CS/A video RAM to be run there, and take this out of the actual (destructive) test area
-#define	RUN_CSA_VMEM		
+;#define	RUN_CSA_VMEM		
 
 ; order by preference which name should be displayed
 #define	MODE_UPET	%10000000
@@ -98,12 +98,17 @@ startofprg:
 
 	*=$0200
 
+#include "mod_mode.a65"
+
 	; re-map block 0
 #ifdef RUN_CSA_VMEM
+	lda mode
+	and #MODE_CSA
+	beq nocsa
 #include "csa_remap.a65"
+nocsa
 #endif
 
-#include "mod_mode.a65"
 
 	
 	;---------------------------------------
@@ -524,14 +529,22 @@ tests
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_himap
-	.byt 0,0
+#ifdef RUN_CSA_VMEM
+	.byt $80,0		; start block $80, end block $ff (+1)
+#else
+	.byt $82,0		; ignore first blocks as this is where we're running in 
+#endif
 	.word test_himap ; exec addr
 
 	; CS/A Hi RAM $800000 - must not cross 16k boundaries
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_hm1
+#ifdef RUN_CSA_VMEM
 	.byt $80,$3f		; start page in mmu, number of pages -1
+#else
+	.byt $82, $3f		; ignore the first blocks as this is where we're running in
+#endif
 	.word test_himem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries

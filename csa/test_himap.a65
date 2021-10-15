@@ -11,10 +11,16 @@
 	; fill the first page of each block with a unique pattern per block
 	; then go back to the start and check if patterns are still there
 
+	; input params:
+	; ac = start block (4k page)
+	; xr = end block
 test_himap .(
 
 blk	=ptr2
 patt	=ptr2+1
+
+	pha
+	sta blk		; start block
 
 	; block pointer
 	lda #$40
@@ -25,10 +31,6 @@ patt	=ptr2+1
 	; start pattern
 	lda #$55
 	sta patt
-
-	; start block
-	lda #$80
-	sta blk
 
 	; fill pattern
 fill	lda blk
@@ -48,6 +50,7 @@ floop	lda patt
 	
 	; next block
 	inc blk
+	cpx blk		; end block
 	bne fill
 
 	; check
@@ -57,7 +60,7 @@ floop	lda patt
 	sta patt
 
 	; start block
-	lda #$80
+	pla
 	sta blk
 	
 	; fill pattern
@@ -79,6 +82,7 @@ cloop	lda patt
 	
 	; next block
 	inc blk
+	cpx blk
 	bne check
 
 	jmp okout
