@@ -16,14 +16,14 @@ tmp2	=ptr2
 	ldy #$00
 	sty ptr1
 	tya
-l1754	sta tmp1		; XOR counter (only $00, $ff are used)
+l1754	sta cnt			; XOR counter (only $00, $ff are used)
 	lda memp1		; start page
 	sta ptr1+1		; actual ptr hi
 l175a	clc
 	tya			; index in page
 	adc ptr1+1		; add page number
 	adc pattrn		; add ???
-	eor tmp1		; XOR counter
+	eor cnt 		; XOR counter
 	sta (ptr1),y
 	iny
 	bne l175a		; next byte
@@ -42,7 +42,7 @@ l1775	clc
 	tya
 	adc ptr1+1
 	adc pattrn
-	eor tmp1
+	eor cnt 
 	sta tmp2
 	eor (ptr1),y
 	bne l1794		; wrong value
@@ -56,7 +56,7 @@ l1775	clc
 	inc ptr1+1		; next page
 	bne l1775
 
-l178e	lda tmp1
+l178e	lda cnt 
 	eor #$ff		; is XOR through?
 	bne l1754		; no, try next
 	rts
