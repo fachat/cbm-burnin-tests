@@ -1,6 +1,6 @@
 
 
-pet_burnin: pet_burnin.a65 test_*.a65 mod_*.a65 */*.a65
+pet_burnin: pet_burnin.a65 *.a65 */*.a65
 	xa -M -l $@.lab -o $@ $<
 
 pet_burnin.hex: 
