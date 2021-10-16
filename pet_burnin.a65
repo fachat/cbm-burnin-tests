@@ -551,21 +551,21 @@ tests
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_hm2
-	.byt $a0,$3f		; start page in bank 1, number of pages-1
+	.byt $a4,$3f		; start page in bank 1, number of pages-1
 	.word test_himem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_hm3
-	.byt $c0,$3f		; start page in bank 1, number of pages-1
+	.byt $c8,$3f		; start page in bank 1, number of pages-1
 	.word test_himem ; exec addr
 
 	; CS/A Video RAM $014000 - must not cross 16 boundaries
 	.byt 1,0
 	.byt 0,MODE_CSA
 	.word m_csa_hm4
-	.byt $e0,$3f		; start page in bank 1, number of pages-1
+	.byt $ec,$3f		; start page in bank 1, number of pages-1
 	.word test_himem ; exec addr
 
 	; end marker
@@ -610,7 +610,7 @@ end	rts
 	.)
 
 	; ----------------------------------
-	; output BIT: <addr>.<bit>.<type>
+	; output BIT: <addr>.<xor>.<type>
 	; for memory error
 badbitx	.(
 	pha
@@ -629,9 +629,11 @@ badbitx	.(
 	.byt $2c
 rderr	lda #"R"
 	jsr chrout
-	pla
+	lda #0
 	ldy #4
-	.byt $2c
+	jsr badout
+	pla
+	jmp hexout
 	.)
 	; fall-through
 	; ----------------------------------
@@ -731,9 +733,9 @@ m_csa_vm4	.asc "VMEM 1C000-1FFFF",0
 
 m_csa_himap	.asc "HIMEM MMU MAP",0
 m_csa_hm1	.asc "HIMEM 80000-83FFF",0
-m_csa_hm2	.asc "HIMEM A0000-A3FFF",0
-m_csa_hm3	.asc "HIMEM C0000-C3FFF",0
-m_csa_hm4	.asc "HIMEM E0000-E3FFF",0
+m_csa_hm2	.asc "HIMEM A4000-A7FFF",0
+m_csa_hm3	.asc "HIMEM C8000-CBFFF",0
+m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
 
 initmsg
 	.byt $92		; REV OFF

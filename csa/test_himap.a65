@@ -87,7 +87,9 @@ cloop	lda patt
 
 	jmp okout
 
-err	; output block
+err	lda #$12
+	jsr chrout
+	; output block
 	lda blk
 	jsr hexout
 	jsr spout
