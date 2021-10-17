@@ -9,7 +9,14 @@ Currently it supports:
 * 4032 - 40 column 32k memory 1MHz
 * 8032 - 80 column 32k memory 1MHz
 * 8096/8296 - 80 column 96/128k memory, where only 96k are tested, 1MHz
-* CS/A65 - 40/80 column 1/2MHz with video card memory tests
+* CS/A65 - 40/80 column 1/2MHz with video card memory and extended SRAM tests
+
+In addition, there is a small C program that allows calculating - and fixing - checksums
+for Commodore ROMs. Pls see
+
+* romcheck.c
+
+for that.
 
 ## Type of tests
 
@@ -21,6 +28,7 @@ This is where the original code comes from.
 
 ## Diagnostics for related machines:
 
+1. [a pet][pet/]: Test modules for the base PET (with 32k)
 1. [a 8296][8296/]: Test modules for the 8296 extended memory and FPLA chip
 2. [a csa][csa/]: Test modules for the CS/A65 PET clone http://www.6502.org/users/andre/csa/index.html
 
