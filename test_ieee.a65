@@ -3,6 +3,8 @@ test_ieee:
 	;---------------------------------------
 	; IEEE 488 BUS
 	.(
+isdrv	=ptr1
+
 	; init IEEE488
 
 	lda #$00
@@ -23,26 +25,59 @@ test_ieee:
 l13ee	sty $e822	; PIA2 IEEE data out
 	nop
 	cpy $e820	; check IEEE data in
-	bne l1446	; not equal -> error
+	bne dataerr	; not equal -> error
 l13f7	iny
 	bne l13ee
 
 	; 2nd test: iterate control lines
-l13fa	ldy #$00		; running state
+	
+	; first check if we have a drive attached
+	ldy #0
+	sty isdrv
+	iny
+	jsr setieee
+	jsr chkieee
+	dey
+	cpy tmp1
+	bne orig
+
+	lda #"D"
+	jsr chrout
+	jsr spout
+	
+	dec isdrv
+orig
+l13fa	ldy #$00	; running state
 l13fc	jsr setieee	; l85e - set state of IEEE I/O
 	jsr chkieee	; l833 - check state of IEEE I/O
 	tya
-	eor tmp1		; XOR target bit
-	and #$f1		; check error bits
-	bne l1411
-l1409	iny			; next IEEE state
+	eor tmp1	; XOR target bit
+	and #$f1	; check error bits
+	bne ctrlerr
+next	iny		; next IEEE state
 	bne l13fc
 l140c	jsr okout	; l7db
 	bne l1451
 
 	; error in IEEE
 	; convert state bits to error number
-l1411	ldx #$08
+ctrlerr	tax
+	bit isdrv
+	bpl ctrl1
+
+	; filter out errors due to drive reacting to ATN
+	and #$10	; filter ATN and NDAC
+	bne ctrl1	; no ATN
+	txa
+	and #$41	; NRFD, NDAC
+	bne next	; errors in NRFD and NDAC are ignored
+ctrl1
+	tya
+	jsr hexout
+	jsr spout
+
+	txa	
+	ldx #$08
 l1413	asl
 	beq l1419
 l1416	dex
@@ -50,9 +85,9 @@ l1416	dex
 
 l1419	ldy #$00
 	cpx #$07
-	beq l140c		; error 7 is OK (NRFD?)
+	beq l140c	; error 7 is OK (NRFD?)
 
-l141f	lda #$12		; REV output
+l141f	lda #$12	; REV output
 	jsr chrout	; l742
 
 	; search for correct string through list of nul-terminated strings
@@ -76,7 +111,7 @@ l143a	lda #$20
 	bne l1451
 
 	; entry on data error on IEEE init
-l1446	tya
+dataerr	tya
 	eor $e820
 	ldy #$1a		; "IEEE BAD IO"
 	ldx #$39
@@ -86,7 +121,14 @@ l1451	rts
 
 
 	; --------------------------------
-	; gather state of the IEEE 488 bus
+	; gather state of the IEEE 488 bus and set into tmp1
+	; 
+	; bit 7: DAV
+	; bit 6: NRFD
+	; bit 5: EOI
+	; bit 4: ATN
+	; bit 3-1:
+	; bit 0: NDAC
 chkieee	.(
 	lda $e840	; VIA PB
 	and #$c1	; 7=DAVin, 6=NRFDin, 0=NDACin
@@ -96,6 +138,8 @@ chkieee	.(
 	and #$20	; 5=EOIin
 	ora tmp1
 	sta tmp1
+
+	; we cannot check ATNIN directly, it's only on an interrupt input
 	lda $e821	; PIA2 CRA, check ATN int
 	and #$02
 	eor #$02
@@ -115,7 +159,14 @@ chkieee	.(
 	rts
 	.)
 
-	; set the state of the IEEE488 bus
+	; set the state of the IEEE488 bus to what is given in YR
+	; 
+	; bit 7: DAV
+	; bit 6: NRFD
+	; bit 5: EOI
+	; bit 4: ATN
+	; bit 3-1: unused 
+	; bit 0: NDAC
 setieee	.(
 	tya
 	and #$80	; shall we set DAV?
@@ -153,16 +204,22 @@ l17e8	sta $e811	; PIA1 CRA -> EOI out
 l17f4	ora #$08	; or high
 l17f6	sta cnt		; target CRA value for NDAC
 
+	; ATNIN is on an interrupt input, so we need
+	; to check if we get the appropriate level change
+	; interrupts when we change it
+
+	; set ATN line to opposite value, so we sure trigger in int
 	tya
 	and #$10	; shall we set ATN?
 	php
-	lda $e840
-	and #$fb
+	lda $e840	; VIA PA
+	and #$fb	; mask out ATNout
 	plp
 	bne l1806
-l1804	ora #$04
-l1806	sta $e840	; set ATN to opposite value
+	ora #$04	; set it
+l1806	sta $e840
 
+	; set interrupt check either on falling or rising edge
 	tya
 	and #$10	; shall we set ATN?
 	php
@@ -172,11 +229,12 @@ l1806	sta $e840	; set ATN to opposite value
 	ora cnt		; or that with the NDAC target
 	sta $e821	; set NDAC and ATN detection
 
+	; and set ATN to correct value to trigger interrupt
 	lda $e840
 	and #$fb	; set ATN bit...
 	plp
 	beq l181f	; ... to correct value ...
-l181d	ora #$04
+	ora #$04
 l181f	sta $e840	; ... so we are sure we trigger in IRQ edge
 	rts
 	.)
