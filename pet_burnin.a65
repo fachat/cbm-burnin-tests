@@ -762,14 +762,14 @@ intvect	.byt $aa
 #include "mod_memtest.a65"
 #include "mod_output.a65"
 
-#include "test_50hz.a65"
-#include "test_rom.a65"
-#include "test_ram.a65"
-#include "test_screenmem.a65"
-#include "test_timer1.a65"
-#include "test_timer2.a65"
-#include "test_ieee.a65"
-#include "test_userport.a65"
+#include "pet/test_50hz.a65"
+#include "pet/test_rom.a65"
+#include "pet/test_ram.a65"
+#include "pet/test_screenmem.a65"
+#include "pet/test_timer1.a65"
+#include "pet/test_timer2.a65"
+#include "pet/test_ieee.a65"
+#include "pet/test_userport.a65"
 
 	; 8296 extra memory and FPLA MMU
 #include "8296/test_8296.a65"
