@@ -105,7 +105,7 @@ startofprg:
 	lda mode
 	and #MODE_CSA
 	beq nocsa
-#include "csa_remap.a65"
+#include "csa/csa_remap.a65"
 nocsa
 #endif
 
@@ -416,14 +416,14 @@ tests
 	.byt 0,1
 	.byt 0, MODE_ANY
 	.word m_kern
-	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR)
+	.byt $b0, 4		; start page, number of 4k blocks (except EDITOR, i.e. $b, $c, $d, $f)
 	.word test_rom
 
 	; ROM EDITOR
 	.byt 1,0
 	.byt 0, MODE_ANY
 	.word m_edit
-	.byt $e0, 1		; start page, number of 4k blocks (except EDITOR)
+	.byt $e0, 1		; start page, number of 4k blocks 
 	.word test_rom
 
 	; IEEE488

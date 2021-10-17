@@ -2,10 +2,21 @@
 	; ------------------------------
 	; KERNAL & BASIC, EDITOR
 	;
-	; the following routine loops over 4k pages,
-	; skipping over the editor. Then switches to the
-	; editor, returns to the loop and uses a different
-	; exit to exit the whole routine
+	; the following routine loops over 4k pages.
+	;
+	; AC=start page (e.g. $b0, $e0)
+	; XR=number of 4k blocks
+	; 
+	; The caveat is that it handles the editor
+	; ROM separately. If starting on BASIC, e.g. 
+	; it skips $exxxx, and ends at $ffff (except X is
+	; shorter)
+	; If it starts at $e000 (AC=#$e0) then it only
+	; checks the editor ROM, no matter what X 
+	; contains
+	;
+	; The routine is called twice from the main test
+	; loop, once for BASIC+KERNAL, once for EDIT ROM
 
 test_rom:
 	.(
@@ -57,7 +68,7 @@ l1343	pla			; restore sum
 	cmp tmp1		; compare with start page - this is the actual checksum check!
 	bne l1384		; not -> error
 
-l134b	dex			; XR is param from caller
+l134b	dex			; XR is param from caller - number of 4k blocks
 	beq l137a
 
 	clc
