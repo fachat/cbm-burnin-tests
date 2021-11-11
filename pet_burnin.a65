@@ -496,7 +496,7 @@ tests
 	.word test_fpla
 
 	; ----
-	; CS/A Video RAM $010000 - must not cross 16k boundaries
+	; CS/A Video RAM $011800 - must not cross 16k boundaries
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_vm1
@@ -510,14 +510,14 @@ tests
 	.byt $40,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
-	; CS/A Video RAM $014000 - must not cross 16k boundaries
+	; CS/A Video RAM $018000 - must not cross 16k boundaries
 	.byt 0,1
 	.byt 0,MODE_CSA
 	.word m_csa_vm3
 	.byt $80,$3f		; start page in bank 1, number of pages-1
 	.word test_vmem ; exec addr
 
-	; CS/A Video RAM $014000 - must not cross 16k boundaries
+	; CS/A Video RAM $01c000 - must not cross 16k boundaries
 	.byt 1,0
 	.byt 0,MODE_CSA
 	.word m_csa_vm4
@@ -567,6 +567,13 @@ tests
 	.word m_csa_hm4
 	.byt $ec,$3f		; start page in bank 1, number of pages-1
 	.word test_himem ; exec addr
+
+	; CS/A IEEE488 ATNA
+	.byt 1,0
+	.byt 0,MODE_CSA
+	.word m_csa_atna
+	.byt 0,0		; start page in bank 1, number of pages-1
+	.word test_atna ; exec addr
 
 	; end marker
 	.word 0
@@ -736,6 +743,7 @@ m_csa_hm1	.asc "HIMEM 80000-83FFF",0
 m_csa_hm2	.asc "HIMEM A4000-A7FFF",0
 m_csa_hm3	.asc "HIMEM C8000-CBFFF",0
 m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
+m_csa_atna	.asc "IEEE488 ATNA",0
 
 initmsg
 	.byt $92		; REV OFF
@@ -780,6 +788,7 @@ intvect	.byt $aa
 	; CS/A65 CPU MMU mapping and BIOS card with 512k SRAM at $80000-$fffff
 #include "csa/test_himap.a65"
 #include "csa/test_himem.a65"
+#include "csa/test_atna.a65"
 
 #print *
 

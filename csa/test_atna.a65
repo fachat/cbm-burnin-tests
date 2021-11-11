@@ -1,0 +1,138 @@
+
+	; this test checks the ATNA functionality of the PETIO board
+	; 
+	; The PETIO board can be jumpered to use Cassette #2 motor signal
+	; to enable ATNA functionality on the Cassette write signal.
+	;
+	; ATNA is the reaction of an IEEE488 disk drive on a change
+	; on ATN. When ATN changes, the ATAN circuit pulls down NRFD and NDAC
+	; (but only NRFD on PETIO), to signal the host that a device is
+	; there. THe drive then activates ATNA to disable pulldown of NRFD
+	;
+	; signals and signal levels have been chosen so that
+	; a) Cassette #1 is fully usable
+	; b) after a PET reset the ATNA is disabled by default
+
+	; test procedure:
+	; Iterate through all combinations of NRFD, ATN, ATNA (CWR) and 
+	; ATNA_enable (C2MTR) and check the resulting ATN and NRFD values.
+	;
+	; It will also accept that a drive will react on the ATN by
+	; pulling NRFD low itself.
+
+test_atna .(
+
+PIA1	=$e810
+PIA_PA	=0
+VIA1	=$e840
+VIA_PB	=0
+
+	; VIA PB
+NRFDIN	=%01000000
+ATNA_EN	=%00010000
+ATNA	=%00001000
+ATNOUT	=%00000100
+NRFDOUT	=%00000010
+
+	; PIA1 PA
+ATNIN	=%00100000
+
+patt	=ptr2
+
+	.(	
+	lda #$ff
+	sta VIA1+VIA_PB
+
+	ldy #0
+cloop	tya
+	asl		; count 0 = NRFDOUT, 1 = ATNOUT, 2 = CWR = ATNA, 3 = C2MTR = ATNA_enable
+	sta outbuf,y	; store
+	
+	; compute check value for NRFD only
+	sta patt
+	and #NRFDOUT	; nrfd out
+	beq zero
+	lda patt
+	and #ATNA_EN	; check ATNA 
+	bne one		; high is disabled
+	lda patt	; check ATNOUT
+	asl		; x2 moves to CWR=ATNA
+	eor patt
+	and #ATNA	; ATN xor ATNA
+	beq one
+
+zero	lda #0
+	.byt $2c
+one	lda #NRFDIN		; NRFDIN
+	sta chkbuf,y
+
+	; compute check value for ATNIN
+	lda patt
+	and #ATNA_EN	; ATNA enable bit
+	bne dis		; ATNA disabled
+	lda patt
+	and #ATNOUT	; ATN out
+	bne notact	; not active
+dis	lda #ATNIN	; note - ATNIN is inverted
+	.byt $2c
+notact	lda #0
+	sta ainbuf,y
+
+	iny
+	cpy #16
+	bcc cloop
+	.)
+
+check	.(
+	ldy #0
+cloop	lda VIA1+VIA_PB
+	and #%11100001
+	ora outbuf,y
+	sta VIA1+VIA_PB
+
+	lda PIA1+PIA_PA
+	and #ATNIN
+	tax
+	cmp ainbuf,y
+	bne aerr
+
+c	lda VIA1+VIA_PB
+	cmp VIA1+VIA_PB
+	bne c
+
+	and #64		; NRFDIN
+	cmp chkbuf,y
+	bne err
+	iny
+	cpy #16
+	bcc cloop
+	
+	jmp okout
+	.)
+
+aerr	lda VIA1+VIA_PB
+err	pha
+	lda #$12
+	jsr chrout
+	; output byte
+	lda outbuf,y
+	jsr hexout
+	lda #":"
+	jsr chrout
+	pla 
+	jsr hexout
+	lda #","
+	jsr chrout
+	txa
+	jsr hexout
+	jsr spout
+	lda #0
+	ldy #22
+	jmp badout
+
+outbuf	.dsb 16, 0
+chkbuf	.dsb 16, 0
+ainbuf	.dsb 16, 0
+
+	.)
+
