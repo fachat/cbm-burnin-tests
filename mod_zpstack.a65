@@ -43,10 +43,10 @@ l106e	lda l1112,y	; write message to screen
 	sta $8000,y
 	iny
 	bne l106e	; always
-	.)
+	
 
 	; write lowest error bit in mismatch byte on screen
-&enderr	.(
+enderr	
 	txa
 	ldx #$38
 l107e	dex
@@ -55,10 +55,10 @@ l107e	dex
 	txa
 	sta $8000,y
 hang	jmp hang
-	.)
+	
 
 	; stack error during init
-stkerr	.(
+&stkerr	
 	tax
 l108a	lda l1124,y
 	beq enderr	; exit to above

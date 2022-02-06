@@ -23,14 +23,10 @@
 	lda mode
 	ora #MODE_CSA
 	sta mode
-nocsa	.)
 
+	; CS/A speed = 40/80 col detection
 
-getfreq .(
-	lda mode
-	and #MODE_CSA
-	beq endfrq
-	lda mode
+	lda mode		; defaults to 40 cols
 	ora #MODE_40COL
 	sta mode
 
@@ -63,6 +59,7 @@ gfe       cpx #8    ; more than 2 MHZ
 endfrq	lda #0
         sta SYSPORT
 	.)
+nocsa
 
 
 	;---------------------------------------
@@ -93,7 +90,39 @@ is8296 	; we have 8x96
 	lda mode
 	ora #MODE_8296
 	sta mode
-no8296	.)
+no8296	
+	lda #0		; disable 8296 mapping
+	sta $fff0
+	.)
+
+	;---------------------------------------
+	; check for the Micro-PET
+	;
+	; we check for the write-protect bit for $9xxx
+	; also, disable write protect in $9xxx for
+	; test code to be executed there
+	.(
+	lda #$f0	; enable write protect
+	sta $e801
+	ldx $9000
+	inc $9000
+	cpx $9000
+	bne noupet	; switch even though write protect is on
+	lda #$e0
+	sta $e801	; disable write protect
+	inc $9000
+	cpx $9000
+	beq noupet	; stays the same even though write potect is off
+	lda mode
+	ora #MODE_UPET
+	sta mode
+	and #MODE_8296
+	beq noupet
+	; we have upet in 8296 mode
+	lda #$e8	; re-enable 8296 mode
+	sta $e801
+noupet	stx $9000
+	.)
 
 	;---------------------------------------
 	; check for 40/80 column PET
@@ -117,6 +146,7 @@ is4032	lda mode
 no4032	stx $8400
 	.)
 
+	
 	;---------------------------------------
 	; put mode info on screen
 	.(

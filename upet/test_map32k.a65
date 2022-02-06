@@ -1,0 +1,100 @@
+
+
+	; this test test the Micro-PET's capability of mapping
+	; the lowermost 32k of the address space from 
+	; any of the 16 32k pages in the 512k Fast RAM.
+	;
+	; it's not testing the memory itself, but the
+	; mapping, i.e. it checks for mirrors etc
+
+	; test procedure:
+	; test all 256 blocks of 32k
+	; fill the last page of each block with a unique pattern per block
+	; then go back to the start and check if patterns are still there
+
+	; input params:
+	; ac = start block (4k page)
+	; xr = end block
+test_map32k .(
+
+	; note: must not conflict with the ROM area, as they are stored in the second 32k 
+	; of the mappable RAM
+TESTAREA=$6f00
+
+	.(
+	ldx #0
+l	lda testcode,x
+	sta $9000,x
+	inx
+	bne l
+	.)
+
+	jsr $9000
+
+	bcs bad
+	jmp okout
+bad	ldy #22
+	jmp errout	
+
+	; the following code is run in $90xx
+	; as it re-maps the low 32k address space
+	; so, it also does not use stack or zp
+	; except per loop
+testcode .(
+
+	.(
+	; start pattern
+	lda #$55
+	sta patt
+
+	; fill
+	ldx #0
+fill	stx $e802
+
+	ldy #0
+floop	lda patt
+	sta TESTAREA,y
+	inc patt
+	iny
+	bne floop
+	inc patt	; change for next iteration
+
+	inx
+	cpx #$10
+	bne fill
+	.)
+
+	.(
+	; start pattern
+	lda #$55
+	sta patt
+
+	; check
+	ldx #0
+check	stx $e802
+	
+	ldy #0
+cloop	lda patt
+	cmp TESTAREA,y
+	bne err
+	inc patt
+	iny
+	bne cloop
+	inc patt
+	inx
+	cpx #$10
+	bne check
+	.)
+
+	clc
+	.byt $24
+err	sec
+	lda #0
+	sta $e802
+	rts
+
+patt	=$9100
+	.)
+
+	.)
+

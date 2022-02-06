@@ -49,12 +49,14 @@ tcol	= $3b			; col where test is displayed
 	.byt 0
 	.word link
 	.word 10		; line number
-	.byt $9e, "4096"
+	.byt $9e, "1040"
 	.byt 0
 link	.byt $00,$00
 
-	.dsb 4096-*, $aa
+	;.dsb 4096-*, $aa
+	;.dsb $2000-*, $aa
 
+	.dsb $0410-*, $aa
 l1000	; start of program
 
 	sei
@@ -82,10 +84,7 @@ l101a	sta $8000,y
 	; check zeropage and stack memory
 #include "mod_zpstack.a65"
 
-	; check target program area, copy program to $0200 and start it
-#include "mod_inicopy.a65"
-
-	
+	jmp inicopy
 
 	;=======================================
 	; relocated code
@@ -96,6 +95,7 @@ l101a	sta $8000,y
 
 startofprg:
 
+offset	=*-$0200
 	*=$0200
 
 #include "mod_mode.a65"
@@ -375,6 +375,9 @@ jmpind	jmp (ptr1)
 
 	; ----------------------------------------------------------------------
 	; test addresses, parameters etc
+	; byt 0/1 are display controls
+	;	if 0,1 then next test is in same section
+	;	if 1,0 then this is last test in section; next test is new section
 	; byt 2/3 are mode masks:
 	; 	if any bit from byte 2 is set, ignore test
 	; 	if any bit from byte 3 is set, do test 
@@ -575,6 +578,14 @@ tests
 	.byt 0,0		; start page in bank 1, number of pages-1
 	.word test_atna ; exec addr
 
+	; ----
+	; Micro-PET checks
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_32k
+	.byt 0,0
+	.word test_map32k
+
 	; end marker
 	.word 0
 
@@ -745,6 +756,8 @@ m_csa_hm3	.asc "HIMEM C8000-CBFFF",0
 m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
 m_csa_atna	.asc "IEEE488 ATNA",0
 
+m_upet_32k	.asc "LOW 32K MAPPING",0
+
 initmsg
 	.byt $92		; REV OFF
 	.byt "   "
@@ -790,7 +803,17 @@ intvect	.byt $aa
 #include "csa/test_himem.a65"
 #include "csa/test_atna.a65"
 
+	; Micro-PET
+#include "upet/test_map32k.a65"
+
+	; check target program area, copy program to $0200 and start it
+endofprg:
+
+	*=*+offset
+inicopy
+#include "mod_inicopy.a65"
+
+
 #print *
 
-endofprg:
 
