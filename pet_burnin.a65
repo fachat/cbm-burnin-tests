@@ -596,6 +596,13 @@ tests
 	.byt 0,0
 	.word test_up_speed
 
+	; CS/A IEEE488 ATNA
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_csa_atna
+	.byt 0,0		; start page in bank 1, number of pages-1
+	.word test_atna ; exec addr
+
 	; end marker
 	.word 0
 
