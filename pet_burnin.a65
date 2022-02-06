@@ -205,6 +205,9 @@ l11ff	lda #$0d
 	;
 
 loop	.(
+	; sync with vsync
+	jsr measure50hz
+
 	lda #<tests
 	sta testp
 	lda #>tests
@@ -444,8 +447,9 @@ tests
 	.word test_userp	; exec addr
 
 	; 50hz
+	; note, replaced by test_up_speed in MODE_UPET
 	.byt 0,1
-	.byt 0, MODE_ANY
+	.byt MODE_UPET, MODE_ANY
 	.word m_50hz
 	.byt 0,0		; parameters
 	.word test_50hz	; exec addr
@@ -585,6 +589,12 @@ tests
 	.word m_upet_32k
 	.byt 0,0
 	.word test_map32k
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_speed
+	.byt 0,0
+	.word test_up_speed
 
 	; end marker
 	.word 0
@@ -757,6 +767,7 @@ m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
 m_csa_atna	.asc "IEEE488 ATNA",0
 
 m_upet_32k	.asc "LOW 32K MAPPING",0
+m_upet_speed	.asc "UPET SPEED (60HZ)",0
 
 initmsg
 	.byt $92		; REV OFF
@@ -765,8 +776,8 @@ initmsg
 	.byt "   "
 	.byt $12,$20,"DIAGNOSTIC "
 m_name	.byt "8032 " 
-	.byt "  V4.0   "
-	.byt "DATE: 08-10-2021 CYCLES: 000000 ", 0
+	.byt "  V4.1   "
+	.byt "DATE: 06-02-2022 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
@@ -805,6 +816,7 @@ intvect	.byt $aa
 
 	; Micro-PET
 #include "upet/test_map32k.a65"
+#include "upet/test_speed.a65"
 
 	; check target program area, copy program to $0200 and start it
 endofprg:

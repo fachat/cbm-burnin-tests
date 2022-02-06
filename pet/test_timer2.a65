@@ -42,15 +42,19 @@ l1564	cli
 	; overflow
 l1574	lda #$00
 	ldy #$16		; "BAD"
-	jmp badout	; l7c8
+	jsr badout	; l7c8
 
-	; compare counter snapshot from interrupt with target $066c
-l157d	lda ptr1+1
+	jsr spout
+	lda ptr1+1
 	jsr hexout
 	lda ptr1
-	jsr hexout
-	jsr spout
+	jmp hexout
 
+	; compare counter snapshot from interrupt with target $066c
+l157d	
+	lda #$7f		; disable interrupts
+	sta $e84e
+	
 	lda ptr1+1
 	cmp #$06
 	bne l1574

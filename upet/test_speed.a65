@@ -1,0 +1,92 @@
+
+test_up_speed:
+	; ----------------------------------
+	; Micro-PET speed 
+	;
+	; test works by running in interrupt routine
+	; on the VSYNC signal input (PIA1 CB1). Counts
+	; time between interrupts, checks diff.
+	; Note that counter $25/YR is initialized
+	; only at the very beginning, so 2nd pass
+	; counter snapshop stores value + value 
+	; from 1st pass. Therefore need to subtract them.
+	;
+	; note: borrows measure routing from pet/test_50hz
+	;
+	.(
+
+	lda #0		; 1 MHz
+	sta $e803
+	jsr measure50hz
+
+	lda ptr1+1
+	cmp #$03		; hi byte difference is 3?
+	bne l14d6		; no, then error
+	lda ptr1		; low byte is 
+	;sec			; set from cmp above
+	sbc #$13
+	cmp #$2			; 13, 14
+	bcs l14d6		; no then error
+	
+	lda #1		; 2 MHz
+	sta $e803
+	jsr measure50hz
+
+	lda ptr1+1
+	cmp #$06		; hi byte difference is 5?
+	bne l14d6		; no, then error
+	lda ptr1		; low byte is 
+	sbc #$2c		;
+	cmp #$02		; 2c, 2d
+	bcs l14d6		; no then error
+
+	lda #2		; 4 MHz
+	sta $e803
+	jsr measure50hz
+
+	lda ptr1+1
+	cmp #$0c		; hi byte difference is 12?
+	bne l14d6		; no, then error
+	lda ptr1		; low byte is 
+	sbc #$5f
+	cmp #$2			; 5f, 60
+	bcs l14d6		; no then error
+
+	lda #3		; 12 MHz
+	sta $e803
+	jsr measure50hz
+
+	lda ptr1+1
+	cmp #$25		; hi byte difference is $25
+	bne l14d6		; no, then error
+	lda ptr1		; low byte is 
+	sbc #$2a
+	cmp #$02		; 2a,2b
+	bcs l14d6		; no then error
+ok
+	jsr okout		; OK
+	bne l14dd
+
+l14d6 	lda #$00
+	ldy #$16		; "BAD"
+	jsr badout		; l7c8
+
+	jsr spout
+	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+
+;
+l14dd	
+	lda #2			; default 4 MHz
+	sta $e803
+
+	lda #$34		; output CB2, direct control via CRB.3, set CB2 low
+	sta $e813		; store in CRB
+	bit $e810		; check PA - clr interrupt on CAx?
+
+	rts
+	.)
+
+

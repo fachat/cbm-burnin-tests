@@ -42,14 +42,18 @@ l1511	cli
 	; overflow
 l1520	lda #$00		; invisible
 	ldy #$16		; "BAD"
-	jmp badout 
+	jsr badout 
 
-	; compare with target value $066c
-l1529	lda ptr1+1
+	jsr spout
+	lda ptr1+1
 	jsr hexout
 	lda ptr1
-	jsr hexout
-	jsr spout
+	jmp hexout
+
+	; compare with target value $066c
+l1529	
+	lda #$7f		; disable interrupts
+	sta $e84e
 
 	lda ptr1+1
 	cmp #$06
