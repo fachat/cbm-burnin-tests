@@ -1,0 +1,121 @@
+
+
+test_up_rtc:
+	; ----------------------------------
+	; Micro-PET RTC 
+	;
+	; This test probes the RTC chip on the Micro-PET.
+	; The test uses two bytes of the SRAM (which are
+	; saved and restored), and the 1/100 counter to
+	; check the clock.
+	;
+	.(
+
+SPICTRL	=$e808
+SPIDATA	=$e809
+SPIPEEK	=$e80a
+
+READ	=%00010011	; read RTCC/SRAM
+WRITE	=%00010010	; write RTCC/SRAM
+
+	; test SRAM
+
+	jsr rdsram
+	stx backup
+	sty backup+1
+
+	lda pattrn
+	tax
+	eor #$ff
+	tay
+	jsr wrsram
+
+	jsr rdsram
+	cpx pattrn
+	bne sramerr
+	tya
+	eor #$ff
+	cmp pattrn
+	bne sramerr
+
+	ldx backup
+	ldy backup+1
+	jsr wrsram
+
+	jmp okout
+
+sramerr	lda #$00
+	ldy #$16		; "BAD"
+	jsr badout		; l7c8
+
+	jsr spout
+	lda pattrn
+	jsr hexout
+	jsr rdsram
+	tya
+	jsr hexout
+	txa
+	jsr hexout
+	rts
+
+wrsram	.(
+	lda #5
+	sta SPICTRL
+	lda #WRITE
+	sta SPIDATA
+	nop
+	nop
+	nop			; wait for SPI transfer at 4 MHz
+	lda #$20
+	sta SPIDATA		; address first byte in SRAM
+	nop
+	nop
+	nop
+	nop
+	sty SPIDATA		; write first data byte 
+	nop
+	nop
+	nop
+	nop
+	stx SPIDATA		; write second data byte
+	nop
+	nop
+	nop
+	lda #0
+	sta SPICTRL		; deselect
+	rts
+	.)
+
+rdsram	.(
+	lda #5
+	sta SPICTRL
+	lda #READ
+	sta SPIDATA
+	nop			; wait for SPI transfer at 4 MHz
+	nop
+	nop
+	lda #$20
+	sta SPIDATA		; address first byte in SRAM
+	nop
+	nop
+	nop
+	lda #0
+	sta SPIDATA		; trigger first data byte transfer
+	nop
+	nop
+	nop
+	nop
+	ldy SPIDATA		; read data and trigger next transfer
+	nop
+	nop
+	nop
+	nop
+	ldx SPIPEEK		; read second (last) byte
+	sta SPICTRL		; deselect
+	rts
+	.)
+
+backup	.byt 0,0
+	.)
+
+

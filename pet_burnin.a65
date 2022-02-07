@@ -596,7 +596,13 @@ tests
 	.byt 0,0
 	.word test_up_speed
 
-	; CS/A IEEE488 ATNA
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_rtc
+	.byt 0,0
+	.word test_up_rtc
+
+	; uPET IEEE488 ATNA
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_csa_atna
@@ -775,6 +781,7 @@ m_csa_atna	.asc "IEEE488 ATNA",0
 
 m_upet_32k	.asc "LOW 32K MAPPING",0
 m_upet_speed	.asc "UPET SPEED (60HZ)",0
+m_upet_rtc	.asc "UPET RTC",0
 
 initmsg
 	.byt $92		; REV OFF
@@ -824,6 +831,7 @@ intvect	.byt $aa
 	; Micro-PET
 #include "upet/test_map32k.a65"
 #include "upet/test_speed.a65"
+#include "upet/test_rtc.a65"
 
 	; check target program area, copy program to $0200 and start it
 endofprg:
