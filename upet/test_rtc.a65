@@ -18,9 +18,12 @@ SPIPEEK	=$e80a
 READ	=%00010011	; read RTCC/SRAM
 WRITE	=%00010010	; write RTCC/SRAM
 
+	; --------------------------
 	; test SRAM
 
-	jsr rdsram
+	.(
+	lda #$20
+	jsr rdreg
 	stx backup
 	sty backup+1
 
@@ -28,9 +31,11 @@ WRITE	=%00010010	; write RTCC/SRAM
 	tax
 	eor #$ff
 	tay
-	jsr wrsram
+	lda #$20
+	jsr wrreg
 
-	jsr rdsram
+	lda #$20
+	jsr rdreg
 	cpx pattrn
 	bne sramerr
 	tya
@@ -40,34 +45,98 @@ WRITE	=%00010010	; write RTCC/SRAM
 
 	ldx backup
 	ldy backup+1
-	jsr wrsram
+	lda #$20
+	jsr wrreg
 
-	jmp okout
+	jmp rtcc		; OK for SRAM
 
 sramerr	lda #$00
 	ldy #$16		; "BAD"
 	jsr badout		; l7c8
 
 	jsr spout
+	lda #"R"
+	jsr chrout
+	jsr spout
+
 	lda pattrn
 	jsr hexout
-	jsr rdsram
+	lda #$20
+	jsr rdreg
 	tya
 	jsr hexout
 	txa
 	jsr hexout
 	rts
+	.)
 
-wrsram	.(
+	; --------------------------
+	; test RTCC
+rtcc	.(
+	; init clock
+	lda #0			; register 0+1
+	sta cntr		; count
+	sta cntr+1		; count
+	jsr rdreg
+	sty comp		; value to compare
+	txa
+	ora #128		; enable clock
+	tax
+	lda #0
+	jsr wrreg		; start clock
+
+tloop
+	lda #0
+	jsr rdreg
+	cpy comp
+	beq tloop
+	sty comp
+tloop2	lda #0
+	jsr rdreg
+	cpy comp
+	bne xloop
+	inc cntr
+	bne tloop2
+	inc cntr+1
+	bne tloop2
+bad
+	lda #$00
+	ldy #$16
+	jsr badout
+	jsr spout
+	lda #"T"
+	jsr chrout
+	lda comp
+	jsr hexout
+	lda cntr+1
+	jsr hexout
+	lda cntr
+	jsr hexout
+	rts
+	
+xloop	lda cntr+1
+	cmp #1
+	bne bad
+	lda cntr
+	cmp #$9e
+	bcc bad
+	cmp #$aa
+	bcs bad
+	jmp okout
+	.)
+
+	; --------------------------
+wrreg	.(
+	pha
 	lda #5
 	sta SPICTRL
 	lda #WRITE
 	sta SPIDATA
+	pla
 	nop
 	nop
 	nop			; wait for SPI transfer at 4 MHz
-	lda #$20
-	sta SPIDATA		; address first byte in SRAM
+	sta SPIDATA		; address first byte (from AC)
 	nop
 	nop
 	nop
@@ -86,16 +155,17 @@ wrsram	.(
 	rts
 	.)
 
-rdsram	.(
+rdreg	.(
+	pha
 	lda #5
 	sta SPICTRL
 	lda #READ
 	sta SPIDATA
-	nop			; wait for SPI transfer at 4 MHz
+	pla
 	nop
 	nop
-	lda #$20
-	sta SPIDATA		; address first byte in SRAM
+	nop
+	sta SPIDATA		; address first byte
 	nop
 	nop
 	nop
@@ -116,6 +186,8 @@ rdsram	.(
 	.)
 
 backup	.byt 0,0
+cntr	=backup
+comp	.byt 0
 	.)
 
 
