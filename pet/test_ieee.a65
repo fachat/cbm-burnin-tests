@@ -1,7 +1,19 @@
 
 test_ieee:
 	;---------------------------------------
+	;
 	; IEEE 488 BUS
+	;
+	; The control lines are mapped as:
+	; 	bit 7: DAV
+	; 	bit 6: NRFD
+	; 	bit 5: EOI
+	; 	bit 4: ATN
+	; 	bit 3-1:
+	; 	bit 0: NDAC
+	;
+	; The test outputs "D" when a drive
+	; is detected.
 	.(
 isdrv	=ptr1
 
@@ -18,6 +30,7 @@ isdrv	=ptr1
 	sta $e823	; PIA2 CRB, access DRB, CB2 low, CB1 input
 	sta $e821	; PIA2 CRA, access DRA, CA2 low, CA1 input
 
+	; --------------------------------
 	; check IEEE488
 
 	; 1st test: data bits
@@ -25,13 +38,16 @@ isdrv	=ptr1
 l13ee	sty $e822	; PIA2 IEEE data out
 	nop
 	cpy $e820	; check IEEE data in
-	bne dataerr	; not equal -> error
+	bne dataerrx	; not equal -> error
 l13f7	iny
 	bne l13ee
 
+	; --------------------------------
 	; 2nd test: iterate control lines
-	
+	;
+
 	; first check if we have a drive attached
+	;
 	ldy #0
 	sty isdrv
 	iny
@@ -46,10 +62,12 @@ l13f7	iny
 	jsr spout
 	
 	dec isdrv
+
+	; ---------	
 orig
 l13fa	ldy #$00	; running state
-l13fc	jsr setieee	; l85e - set state of IEEE I/O
-	jsr chkieee	; l833 - check state of IEEE I/O
+l13fc	jsr setieee	; set state of IEEE I/O
+	jsr chkieee	; check state of IEEE I/O
 	tya
 	eor tmp1	; XOR target bit
 	and #$f1	; check error bits
@@ -57,26 +75,31 @@ l13fc	jsr setieee	; l85e - set state of IEEE I/O
 next	iny		; next IEEE state
 	bne l13fc
 l140c	jsr okout	; l7db
-	bne l1451
+	bne exit
+
+dataerrx 
+	bne dataerr
 
 	; error in IEEE
 	; convert state bits to error number
 ctrlerr	tax
 	bit isdrv
-	bpl ctrl1
+	bpl cerr1
 
 	; filter out errors due to drive reacting to ATN
 	and #$10	; filter ATN and NDAC
-	bne ctrl1	; no ATN
+	bne cerr1	; no ATN
 	txa
 	and #$41	; NRFD, NDAC
 	bne next	; errors in NRFD and NDAC are ignored
-ctrl1
+cerr1
 	tya
+	jsr hexout
+	txa
 	jsr hexout
 	jsr spout
 
-	txa	
+	txa
 	ldx #$08
 l1413	asl
 	beq l1419
@@ -97,18 +120,19 @@ l1424	lda ieeestr,y	; l92b,y
 	bne l1424
 l142c	dex
 	bne l1424
+
 	; output error string
-l142f	lda ieeestr,y	; l92b,y
+l142f	lda ieeestr,y
 	beq l143a
-l1434	jsr chrout	; l742
+l1434	jsr chrout
 	iny
 	bne l142f
 
-l143a	lda #$20
-	jsr chrout	; l742
+l143a	lda #$20	; space
+	jsr chrout
 	ldy #$16		; "BAD"
-	jsr badout	; l7c8
-	bne l1451
+	jsr badout
+	bne exit
 
 	; entry on data error on IEEE init
 dataerr	tya
@@ -117,10 +141,10 @@ dataerr	tya
 	ldx #$39
 	jsr badbit2	; l7c3
 
-l1451	rts
+exit	rts
 
 
-	; --------------------------------
+	; -----------------------------------------------------------
 	; gather state of the IEEE 488 bus and set into tmp1
 	; 
 	; bit 7: DAV
@@ -159,6 +183,7 @@ chkieee	.(
 	rts
 	.)
 
+	; -----------------------------------------------------------
 	; set the state of the IEEE488 bus to what is given in YR
 	; 
 	; bit 7: DAV
