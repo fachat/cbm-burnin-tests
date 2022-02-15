@@ -3,7 +3,7 @@
 all: pet_burnin romcheck
 
 pet_burnin: pet_burnin.a65 *.a65 */*.a65
-	xa -M -l $@.lab -o $@ $<
+	xa -w -M -l $@.lab -o $@ $<
 
 pet_burnin.hex: 
 	hexdump -C $@ > $@.hex
