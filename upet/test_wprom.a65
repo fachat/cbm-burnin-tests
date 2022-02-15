@@ -1,0 +1,131 @@
+
+
+	; this test test the Micro-PET's capability of
+	; write protecting the ROM area in the upper 32k
+	; of the lowest memory bank.
+
+m_upet_wprom
+	.asc "UPET ROM WPROT",0
+
+test_wprom .(
+
+	lda #$90
+	ldx #%00010000
+	jsr test
+	bcs bad
+
+	lda #$a0
+	ldx #%00100000
+	jsr test
+	bcs bad
+
+	lda #$b0
+	ldx #%01000000
+	jsr test
+	bcs bad
+
+	lda #$c0
+	ldx #%10000000
+	jsr test
+	bcs bad
+
+	lda #$d0
+	ldx #%10000000
+	jsr test
+	bcs bad
+
+	lda #$e0
+	ldx #%10000000
+	jsr test
+	bcs bad
+
+	lda #$f0
+	ldx #%10000000
+	jsr test
+	bcs bad
+
+	jmp okout
+
+bad	; XR has either W or P
+	ldy #22
+	jsr errout
+	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jmp hexout
+
+test	.(
+	sta ptr1+1
+	lda #0
+	sta ptr1
+
+	; save buffer
+	ldy #0
+savel	lda (ptr1),y
+	sta buffer,y
+	iny
+	bne savel
+
+	; write protect
+	stx $e801
+	jsr xor
+	ldx #"P"
+	jsr comp
+	bne err
+	; write enable
+	lda #0
+	sta $e801
+	jsr xor
+	ldx #"W"
+	jsr compx
+	beq ok
+
+err	sec
+	.byt $24
+ok	clc
+	php
+	; recover
+	ldy #0
+recl	lda buffer,y
+	sta (ptr1),y
+	iny
+	bne recl
+	lda #%11110000
+	sta $e801
+	plp
+	rts
+	.)
+
+xor	.(
+	ldy #0
+xorl	lda (ptr1),y
+	eor pattrn
+	sta (ptr1),y
+	iny
+	bne xorl
+	rts
+	.)
+
+comp	.(
+	ldy #0
+compl	lda (ptr1),y
+	cmp buffer,y
+	bne compe
+	iny
+	bne compl
+compe	rts
+	.)
+
+compx	.(
+	ldy #0
+compl	lda (ptr1),y
+	eor pattrn
+	cmp buffer,y
+	bne compe
+	iny
+	bne compl
+compe	rts
+	.)
+
+	.)
+
