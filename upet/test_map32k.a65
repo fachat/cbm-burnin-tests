@@ -33,7 +33,13 @@ l	lda testcode,x
 
 	bcs bad
 	jmp okout
-bad	ldy #22
+bad	tya		; 32k bank
+	jsr hexout
+	jsr spout
+	txa
+	jsr hexout
+	jsr spout
+	ldy #22
 	jmp errout	
 
 	; the following code is run in $90xx
@@ -42,6 +48,7 @@ bad	ldy #22
 	; except per loop
 testcode .(
 
+	; -----------
 	.(
 	; start pattern
 	lda #$55
@@ -64,25 +71,37 @@ floop	lda patt
 	bne fill
 	.)
 
+	; -----------
 	.(
 	; start pattern
 	lda #$55
 	sta patt
 
 	; check
-	ldx #0
-check	stx $e802
-	
 	ldy #0
+check	sty $e802	; 32k bank
+
+	; self-modifying code
+	tya
+	lsr
+	sta cmpl+$9000-testcode+3	; bank byte
+	lda #0
+	ror
+	ora #>TESTAREA
+	sta cmpl+$9000-testcode+2	; high address byte
+
+	ldx #0
 cloop	lda patt
-	cmp TESTAREA,y
+	cmp TESTAREA,x
+	bne err
+cmpl	cmp TESTAREA+$010000,x
 	bne err
 	inc patt
-	iny
+	inx
 	bne cloop
 	inc patt
-	inx
-	cpx #$10
+	iny
+	cpy #$10
 	bne check
 	.)
 
