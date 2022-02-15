@@ -74,23 +74,50 @@ sramerr	lda #$00
 	; test RTCC
 rtcc	.(
 	; init clock
+	lda #1
+	sta cntr2		; init wait timer
+
 	lda #0			; register 0+1
-	sta cntr		; count
-	sta cntr+1		; count
 	jsr rdreg
 	sty comp		; value to compare
 	txa
+	bmi tloop		; is already running
 	ora #128		; enable clock
 	tax
 	lda #0
 	jsr wrreg		; start clock
 
-tloop
+	; wait for init
+	lda #30
+	sta cntr2
+
+tloop	.(
+	lda #0
+	sta cntr		; count
+	sta cntr+1		; count
+tl0
 	lda #0
 	jsr rdreg
-	cpy comp
-	beq tloop
+
+	inc cntr
+	bne tl1
+	inc cntr+1
+	bne tl1
+	lda cntr2
+	beq bad
+
+tl1 	cpy comp
+	beq tl0
 	sty comp
+
+	dec cntr2
+	bne tloop
+	.)
+
+	lda #0
+	sta cntr
+	sta cntr+1
+
 tloop2	lda #0
 	jsr rdreg
 	cpy comp
@@ -118,7 +145,7 @@ xloop	lda cntr+1
 	cmp #1
 	bne bad
 	lda cntr
-	cmp #$9e
+	cmp #$99
 	bcc bad
 	cmp #$aa
 	bcs bad
@@ -188,6 +215,7 @@ rdreg	.(
 backup	.byt 0,0
 cntr	=backup
 comp	.byt 0
+cntr2	.byt 0
 	.)
 
 
