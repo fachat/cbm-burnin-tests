@@ -28,7 +28,7 @@ This is where the original code comes from.
 
 ## Diagnostics for related machines:
 
-1. [a pet][pet/]: Test modules for the base PET (with 32k)
-1. [a 8296][8296/]: Test modules for the 8296 extended memory and FPLA chip
-2. [a csa][csa/]: Test modules for the CS/A65 PET clone http://www.6502.org/users/andre/csa/index.html
+1. [a pet](pet/): Test modules for the base PET (with 32k)
+1. [a 8296](8296/): Test modules for the 8296 extended memory and FPLA chip
+2. [a csa](csa/): Test modules for the CS/A65 PET clone http://www.6502.org/users/andre/csa/index.html
 
