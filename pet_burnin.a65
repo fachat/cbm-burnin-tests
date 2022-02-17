@@ -592,6 +592,18 @@ tests
 
 	.byt 0,1
 	.byt 0,MODE_UPET
+	.word m_upet_vmap
+	.byt 0,0
+	.word test_vmap
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_wprom
+	.byt 0,0
+	.word test_wprom
+
+	.byt 0,1
+	.byt 0,MODE_UPET
 	.word m_upet_speed
 	.byt 0,0
 	.word test_up_speed
@@ -777,9 +789,9 @@ m_csa_hm1	.asc "HIMEM 80000-83FFF",0
 m_csa_hm2	.asc "HIMEM A4000-A7FFF",0
 m_csa_hm3	.asc "HIMEM C8000-CBFFF",0
 m_csa_hm4	.asc "HIMEM EC000-EFFFF",0
-m_csa_atna	.asc "IEEE488 ATNA",0
+m_csa_atna	.asc "IEEE 488 ATNA",0
 
-m_upet_32k	.asc "LOW 32K MAPPING",0
+m_upet_32k	.asc "UPET LOW 32K MAP",0
 m_upet_speed	.asc "UPET SPEED (60HZ)",0
 m_upet_rtc	.asc "UPET SRAM/RTC",0
 
@@ -830,11 +842,15 @@ intvect	.byt $aa
 
 	; Micro-PET
 #include "upet/test_map32k.a65"
+#include "upet/test_vmap.a65"
+#include "upet/test_wprom.a65"
 #include "upet/test_speed.a65"
 #include "upet/test_rtc.a65"
 
 	; check target program area, copy program to $0200 and start it
 endofprg:
+
+buffer	=endofprg
 
 	*=*+offset
 inicopy

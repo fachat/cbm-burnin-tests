@@ -1,0 +1,12 @@
+
+ 100 a=15*4096
+ 110 l=4096
+ 120 s=0
+ 200 p=peek(a)
+ 210 s=s+p
+ 220 if s > 255 then s = s-255
+ 230 a=a+1
+ 240 l=l-1
+ 250 if l > 0 then goto 200
+ 300 print "s="; s
+

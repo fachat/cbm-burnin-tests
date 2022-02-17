@@ -1,8 +1,7 @@
 
 
 	; this test test the Micro-PET's capability of mapping
-	; the lowermost 32k of the address space from 
-	; any of the 16 32k pages in the 512k Fast RAM.
+	; the 4k video memory into bank 8 VRAM address space.
 	;
 	; it's not testing the memory itself, but the
 	; mapping, i.e. it checks for mirrors etc
@@ -15,21 +14,16 @@
 	; input params:
 	; ac = start block (4k page)
 	; xr = end block
-test_map32k .(
 
-	; note: must not conflict with the ROM area, as they are stored in the second 32k 
-	; of the mappable RAM
-TESTAREA=$6f00
+m_upet_vmap
+	.asc "UPET VRAM MAP",0
 
-	.(
-	ldx #0
-l	lda testcode,x
-	sta $9000,x
-	inx
-	bne l
-	.)
+test_vmap .(
 
-	jsr $9000
+TESTAREA=$8800
+patt	=tmp1
+
+	jsr testcode
 
 	bcs bad
 	jmp okout
@@ -42,10 +36,6 @@ bad	tya		; 32k bank
 	ldy #22
 	jmp errout	
 
-	; the following code is run in $90xx
-	; as it re-maps the low 32k address space
-	; so, it also does not use stack or zp
-	; except per loop
 testcode .(
 
 	; -----------
@@ -57,7 +47,10 @@ testcode .(
 	; fill
 	ldy #0
 fill	tya
-	ora #$10	; std CRTC video mapping
+	asl
+	asl
+	asl
+	asl
 	sta $e802
 
 	ldx #0
@@ -69,7 +62,7 @@ floop	lda patt
 	inc patt	; change for next iteration
 
 	iny
-	cpy #$10
+	cpy #4
 	bne fill
 	.)
 
@@ -82,30 +75,29 @@ floop	lda patt
 	; check
 	ldy #0
 check	tya
-	ora #$10
+	asl
+	asl
+	asl
+	asl
 	sta $e802	; 32k bank
 
 	; self-modifying code
-	tya
-	lsr
-	sta cmpl+$9000-testcode+3	; bank byte
-	lda #0
-	ror
-	ora #>TESTAREA
-	sta cmpl+$9000-testcode+2	; high address byte
+	clc
+	adc #>TESTAREA
+	sta cmpl+2	; high address byte
 
 	ldx #0
 cloop	lda patt
 	cmp TESTAREA,x
 	bne err
-cmpl	cmp TESTAREA+$010000,x
+cmpl	cmp TESTAREA+$080000,x
 	bne err
 	inc patt
 	inx
 	bne cloop
 	inc patt
 	iny
-	cpy #$10
+	cpy #4
 	bne check
 	.)
 
@@ -116,7 +108,6 @@ err	sec
 	sta $e802
 	rts
 
-patt	=$9100
 	.)
 
 	.)

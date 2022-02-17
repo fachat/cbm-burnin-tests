@@ -1,4 +1,5 @@
 
+PRGS=romchk
 
 all: pet_burnin romcheck
 
@@ -11,6 +12,9 @@ pet_burnin.hex:
 
 romcheck: romcheck.c
 	cc -Wall -pedantic -o $@ $<
+
+${PRGS}: % : %.lst
+	petcat -w40 -o $@ $<
 
 clean:
 	rm -f pet_burnin.lab romcheck
