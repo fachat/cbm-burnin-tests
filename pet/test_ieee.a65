@@ -209,7 +209,8 @@ l17d0	sta $e823	; PIA2 CRB
 	and #$40	; shall we set NRFD?
 	beq l17da
 l17d8	lda #$02	; NRFD 
-l17da	sta $e840	; set 
+l17da	ora #$10	; disable UPET ATNA
+	sta $e840	; set 
 
 	tya
 	and #$20	; shall we set EOI?
