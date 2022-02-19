@@ -90,7 +90,12 @@ recl	lda buffer,y
 	sta (ptr1),y
 	iny
 	bne recl
-	lda #%11110000
+	lda mode
+	and #MODE_8296
+	beq no8296
+	lda #%11111000	; includes 8296
+	.byt $2c
+no8296	lda #%11110000
 	sta $e801
 	plp
 	rts
