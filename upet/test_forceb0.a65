@@ -19,6 +19,10 @@ MCTRL	=$e801
 	.(
 
 	; check bank rollover disabled
+	; emulation mode
+
+	; Test 00
+	ldx #0
 
 	lda #$e0
 	sta MCTRL
@@ -29,24 +33,77 @@ MCTRL	=$e801
 	eor #$ff
 	sta $010000+tmp1
 
-	lda tmp1
-	bne err
+	ldy tmp1
+	bne err			; rollover happened
 
 	; check bank rollover emabled
+	; emulation mode
+
+	; Test 01
+	inx
 
 	lda #$e1
 	sta MCTRL
 
+	lda #0
+	sta tmp1
+
 	eor #$ff
 	sta $010000+tmp1
 
+	ldy tmp1
 	cmp tmp1
-	bne err
+	bne err			; rollover did not happen
+
+	; check bank rollover disabled
+	; native mode
+	clc
+	xce
+
+	; Test 02
+	inx
+
+	lda #$e0
+	sta MCTRL
+
+	lda #0
+	sta tmp1
+
+	eor #$ff
+	sta $010000+tmp1
+
+	ldy tmp1
+	bne err			; rollover happened
+
+	; check bank rollover emabled
+	; native mode
+
+	; Test 03
+	inx
+
+	lda #$e1
+	sta MCTRL
+
+	lda #0
+	sta tmp1
+
+	eor #$ff
+	sta $010000+tmp1
+
+	ldy tmp1
+	bne err			; rollover happened
 
 	jsr okout
 	jmp exit
 
-err 	lda #$00
+err 	lda #$12
+	jsr chrout
+	txa
+	jsr hexout
+	tya 
+	jsr hexout
+	jsr spout
+	lda #$00
 	ldy #$16		; "BAD"
 	jsr badout		; l7c8
 
@@ -55,8 +112,11 @@ exit	lda mode
 	beq no8296
 	lda #$e8
 	.byt $2c
-no8296	lda #$e0
+no8296 	lda #$e0
 	sta MCTRL
+	; switch back to emulation mode
+	sec
+	xce
 	rts
 	.)
 

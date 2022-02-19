@@ -179,16 +179,20 @@ bad
 	;
 xloop	pha
 	lda cntr+1
-	cmp #2			; @ 12 Mhz
+	cmp #1			; @ 12 Mhz
 	bne bad
 	lda cntr
-	cmp #$08		; @ 12 MHz
+	; lowest
+	cmp #$ef		; @ 12 MHz
 	bcc bad
-	cmp #$17		; @ 12 MHz
+	; highest
+	cmp #$fd		; @ 12 MHz
 	bcs bad
-	cmp #$15
+	; lower value of upper interval
+	cmp #$fb
 	bcs ok
-	cmp #$0a
+	; upper value of lower interval
+	cmp #$f0
 	bcs bad
 ok	
 	pla
