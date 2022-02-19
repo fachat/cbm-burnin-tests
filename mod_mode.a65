@@ -114,8 +114,8 @@ no8296
 	cpx $9000
 	beq noupet	; stays the same even though write potect is off
 
-	lda #1
-	sta $e803	; default to 4 MHz
+	lda #3
+	sta $e803	; default to 12 MHz
 
 	lda mode
 	ora #MODE_UPET

@@ -23,7 +23,7 @@ WRITE	=%00010010	; write RTCC/SRAM
 
 	.(
 	lda #$20
-	jsr rdreg
+	jsr r2reg
 	stx backup
 	sty backup+1
 
@@ -32,10 +32,10 @@ WRITE	=%00010010	; write RTCC/SRAM
 	eor #$ff
 	tay
 	lda #$20
-	jsr wrreg
+	jsr w2reg
 
 	lda #$20
-	jsr rdreg
+	jsr r2reg
 	cpx pattrn
 	bne sramerr
 	tya
@@ -46,7 +46,7 @@ WRITE	=%00010010	; write RTCC/SRAM
 	ldx backup
 	ldy backup+1
 	lda #$20
-	jsr wrreg
+	jsr w2reg
 
 	jmp rtcc		; OK for SRAM
 
@@ -62,7 +62,7 @@ sramerr	lda #$00
 	lda pattrn
 	jsr hexout
 	lda #$20
-	jsr rdreg
+	jsr r2reg
 	tya
 	jsr hexout
 	txa
@@ -112,7 +112,7 @@ tloop	.(
 	sta cntr+1		; count
 tl0
 	lda #0
-	jsr rdreg
+	jsr r2reg
 
 	inc cntr
 	bne tl1
@@ -134,7 +134,7 @@ tl1 	cpy comp
 	sta cntr+1
 
 tloop2	lda #0
-	jsr rdreg
+	jsr r2reg
 	cpy comp
 	bne xloop
 	inc cntr
@@ -157,18 +157,29 @@ bad
 	rts
 	
 xloop	lda cntr+1
-	cmp #1
+	;cmp #1			; @ 4 MHz
+	cmp #4			; @ 12 Mhz
 	bne bad
 	lda cntr
-	cmp #$99
+	;cmp #$99		: @ 4 MHz
+	cmp #0			; @ 12 MHz
 	bcc bad
-	cmp #$aa
+	;cmp #$aa		; @ 4 MHz
+	cmp #2			; @ 12 MHz
 	bcs bad
 	jmp okout
 	.)
 
-	; --------------------------
-wrreg	.(
+	; ------------------------------------------------------------
+	; access routines for the RTC chip. 
+	; using the SPI routines
+	;
+	; note that the test program may run with 12MHz
+	; and the SPI clock runs with 6 MHz to accomodate the 
+	; maximum SPI clock speed of the RTC chip
+	; So, to transfer 8 bits at 6MHz, we need 1.3 usec,
+	; which is 16 clock cycles, or 8 NOPs between access.
+w2reg	.(
 	pha
 	lda #5
 	sta SPICTRL
@@ -177,8 +188,14 @@ wrreg	.(
 	pla
 	nop
 	nop
+	nop
+	nop
+	nop
 	nop			; wait for SPI transfer at 4 MHz
 	sta SPIDATA		; address first byte (from AC)
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -188,7 +205,13 @@ wrreg	.(
 	nop
 	nop
 	nop
+	nop
+	nop
+	nop
 	stx SPIDATA		; write second data byte
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -207,8 +230,15 @@ w1reg	.(
 	sta SPIDATA
 	nop
 	nop
+	nop
+	nop
+	nop
+	nop
 	nop			; wait for SPI transfer at 4 MHz
 	sty SPIDATA		; address first byte (from AC)
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -217,12 +247,15 @@ w1reg	.(
 	nop
 	nop
 	nop
+	nop
+	nop
+	nop
 	lda #0
 	sta SPICTRL		; deselect
 	rts
 	.)
 
-rdreg	.(
+r2reg	.(
 	pha
 	lda #5
 	sta SPICTRL
@@ -232,7 +265,13 @@ rdreg	.(
 	nop
 	nop
 	nop
+	nop
+	nop
+	nop
 	sta SPIDATA		; address first byte
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -242,7 +281,13 @@ rdreg	.(
 	nop
 	nop
 	nop
+	nop
+	nop
+	nop
 	ldy SPIDATA		; read data and trigger next transfer
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -261,12 +306,22 @@ r1reg	.(
 	nop
 	nop
 	nop
+	nop
+	nop
+	nop
+	nop
 	sty SPIDATA		; address first byte
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
 	lda #0
 	sta SPIDATA		; trigger first data byte transfer
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
