@@ -1,19 +1,13 @@
 
 	; ------------------------------
-	; RAM 0200-7FFF
+	; RAM banks for 816. Test full bank
+	;
 	; test RAM with pattern check in memtest
+	;
+	; a = start bank
+	; x = end bank
 test_upmem:
 	.(
-	ldy #$00
-	sty ptr1		; low ptr for memory test
-
-	;lda #$0b		; start page - param
-	sta memp1
-	;lda #$7f		; end page - param
-	clc
-	adc #$40		; 16k
-	sta memp1+1
-
 	; check the memory - XR is bank
 l1220	jsr memtest816		; l7ef
 	bne l122a
@@ -21,7 +15,8 @@ l1220	jsr memtest816		; l7ef
 	; ok, no error
 	jmp okout		; l7db
 
-l122a	jmp badbitx		; l7bf
+l122a	
+	jmp badbitx		; l7bf
 	.)
 
 

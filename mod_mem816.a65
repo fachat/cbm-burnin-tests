@@ -9,14 +9,21 @@
 	; ac=broken bit
 	; x/y=address (x hi, y lo)
 	; c=0 is read unstable, c=1 write unstable
+	; ptr1+0/1/2 = bank address of failure
+	;
+	; input a=start bank, x=end bank +1
 memtest816 .(
 
 ptr1b	=ptr2			; bank for ptr1
 tmp2	=ptr2+1
 
-	; bank
-	stx ptr1b
+startb	=memp1			; start bank
+endb	=memp1+1		; end bank
 
+
+	; bank
+	sta startb
+	stx endb
 	; native mode
 	clc
 	xce
@@ -28,7 +35,9 @@ tmp2	=ptr2+1
 xorlp	sta cnt			; XOR counter (only $00, $ff are used)
 
 	.(
-	lda memp1		; start page
+	lda startb
+	sta ptr1b
+	lda #0			; start page
 	sta ptr1+1		; actual ptr hi
 
 stloop	clc
@@ -41,18 +50,20 @@ stloop	clc
 	iny
 	bne stloop		; next byte
 
-	lda ptr1+1
-	cmp memp1+1		; end page
-	beq mcheck
-
 	inc ptr1+1		; next page
 	bne stloop
-	.)
 
+	inc ptr1b
+	lda ptr1b
+	cmp endb
+	bne stloop
+	.)
 	; check pattern
 	
 mcheck 	.(
-	lda memp1
+	lda startb
+	sta ptr1b
+	lda #0
 	sta ptr1+1
 
 chklp	clc
@@ -67,15 +78,16 @@ chklp	clc
 	iny
 	bne chklp		; next byte
 
-	lda ptr1+1
-	cmp memp1+1		; end page
-	beq l178e		; is last page?
-
 	inc ptr1+1		; next page
+	bne chklp
+
+	inc ptr1b
+	lda ptr1b
+	cmp endb
 	bne chklp
 	.)
 
-l178e	lda cnt 
+	lda cnt 
 	eor #$ff		; is XOR through?
 	bne xorlp		; no, try next
 	beq exit
@@ -90,7 +102,7 @@ merr	; analyze error
 rderr	clc
 	ldx ptr1+1		; high byte, y already has low byte of addr
 	pla			; restore bit
-exit
+exit	
 	php
 	sec
 	xce

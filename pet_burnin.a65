@@ -624,37 +624,13 @@ tests
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_upet_bank1
-	.byt $40,1
+	.byt 1,8
 	.word test_upmem
 
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_upet_bank2
-	.byt $80,2
-	.word test_upmem
-
-	.byt 0,1
-	.byt 0,MODE_UPET
-	.word m_upet_bank3
-	.byt $c0,3
-	.word test_upmem
-
-	.byt 0,1
-	.byt 0,MODE_UPET
-	.word m_upet_bank8
-	.byt $40,8
-	.word test_upmem
-
-	.byt 0,1
-	.byt 0,MODE_UPET
-	.word m_upet_bank9
-	.byt $80,$9
-	.word test_upmem
-
-	.byt 0,1
-	.byt 0,MODE_UPET
-	.word m_upet_banka
-	.byt $c0,$a
+	.byt 9,$10
 	.word test_upmem
 
 	; end marker
@@ -830,12 +806,8 @@ m_csa_atna	.asc "IEEE 488 ATNA",0
 m_upet_32k	.asc "UPET LOW 32K MAP",0
 m_upet_speed	.asc "UPET SPEED (60HZ)",0
 m_upet_rtc	.asc "UPET SRAM/RTC",0
-m_upet_bank1 	.asc "UPET BANK 1 4-7XXX",0
-m_upet_bank2 	.asc "UPET BANK 2 8-BXXX",0
-m_upet_bank3 	.asc "UPET BANK 3 C-FXXX",0
-m_upet_bank8 	.asc "UPET BANK 8 4-7XXX",0
-m_upet_bank9 	.asc "UPET BANK 9 8-BXXX",0
-m_upet_banka 	.asc "UPET BANK A C-FXXX",0
+m_upet_bank1 	.asc "UPET BANK 1-7",0
+m_upet_bank2 	.asc "UPET BANK 9-F",0
 
 
 initmsg
