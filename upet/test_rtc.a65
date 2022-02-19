@@ -73,19 +73,34 @@ sramerr	lda #$00
 	; --------------------------
 	; test RTCC
 rtcc	.(
+
 	; init clock
 	lda #1
 	sta cntr2		; init wait timer
 
-	lda #0			; register 0+1
-	jsr rdreg
-	sty comp		; value to compare
-	txa
-	bmi tloop		; is already running
-	ora #128		; enable clock
+	ldy #0			; register 0+1
+	jsr r1reg
+	sta comp		; value to compare
+	iny
+	jsr r1reg
 	tax
-	lda #0
-	jsr wrreg		; start clock
+	bmi tloop		; is already running
+
+	; enable battery backup
+	ldy #4
+	jsr r1reg
+	ora #8
+	jsr w1reg
+
+	ldy #8
+	jsr r1reg
+	lda #64			; alm_no + sqwen + clko_01
+	jsr w1reg
+
+	ldy #1
+	jsr r1reg
+	ora #$80		; start clock
+	jsr w1reg
 
 	; wait for init
 	lda #30
@@ -182,6 +197,31 @@ wrreg	.(
 	rts
 	.)
 
+
+	; YR= reg#, AC= data
+w1reg	.(
+	pha
+	lda #5
+	sta SPICTRL
+	lda #WRITE
+	sta SPIDATA
+	nop
+	nop
+	nop			; wait for SPI transfer at 4 MHz
+	sty SPIDATA		; address first byte (from AC)
+	nop
+	nop
+	nop
+	pla
+	sta SPIDATA		; write first data byte 
+	nop
+	nop
+	nop
+	lda #0
+	sta SPICTRL		; deselect
+	rts
+	.)
+
 rdreg	.(
 	pha
 	lda #5
@@ -209,6 +249,30 @@ rdreg	.(
 	nop
 	ldx SPIPEEK		; read second (last) byte
 	sta SPICTRL		; deselect
+	rts
+	.)
+
+	; YR= reg#, out -> AC=data, YR unmodified
+r1reg	.(
+	lda #5
+	sta SPICTRL
+	lda #READ
+	sta SPIDATA
+	nop
+	nop
+	nop
+	sty SPIDATA		; address first byte
+	nop
+	nop
+	nop
+	lda #0
+	sta SPIDATA		; trigger first data byte transfer
+	nop
+	nop
+	nop
+	nop
+	sta SPICTRL		; deselect
+	lda SPIPEEK		; read last byte
 	rts
 	.)
 
