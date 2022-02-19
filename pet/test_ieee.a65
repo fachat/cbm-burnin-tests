@@ -53,8 +53,6 @@ l13f7	iny
 	iny
 	jsr setieee
 	jsr chkieee
-sta $8000
-sty $8001
 	dey
 	cpy tmp1
 	bne orig
