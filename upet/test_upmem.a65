@@ -1,0 +1,27 @@
+
+	; ------------------------------
+	; RAM 0200-7FFF
+	; test RAM with pattern check in memtest
+test_upmem:
+	.(
+	ldy #$00
+	sty ptr1		; low ptr for memory test
+
+	;lda #$0b		; start page - param
+	sta memp1
+	;lda #$7f		; end page - param
+	clc
+	adc #$40		; 16k
+	sta memp1+1
+
+	; check the memory - XR is bank
+l1220	jsr memtest816		; l7ef
+	bne l122a
+
+	; ok, no error
+	jmp okout		; l7db
+
+l122a	jmp badbitx		; l7bf
+	.)
+
+

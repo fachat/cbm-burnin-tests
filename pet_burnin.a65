@@ -18,7 +18,7 @@
 
 tmp1	= $20			; general temp value for XOR, or adding
 ptr1	= $21			; general pointer / 16 bit counter
-ptr2	= $23			; general pointer / 16 bit counter
+ptr2	= ptr1+2		; general pointer / 16 bit counter (follows ptr1, so used as bank as well)
 cnt	= $25			; general 8 bit counter
 
 mode	= $26			; bit 7: 1=2 MHz
@@ -615,11 +615,47 @@ tests
 	.word test_up_rtc
 
 	; uPET IEEE488 ATNA
-	.byt 0,1
+	.byt 1,0
 	.byt 0,MODE_UPET
 	.word m_csa_atna
 	.byt 0,0		; start page in bank 1, number of pages-1
 	.word test_atna ; exec addr
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank1
+	.byt $40,1
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank2
+	.byt $80,2
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank3
+	.byt $c0,3
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank8
+	.byt $40,8
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_bank9
+	.byt $80,$9
+	.word test_upmem
+
+	.byt 0,1
+	.byt 0,MODE_UPET
+	.word m_upet_banka
+	.byt $c0,$a
+	.word test_upmem
 
 	; end marker
 	.word 0
@@ -794,6 +830,13 @@ m_csa_atna	.asc "IEEE 488 ATNA",0
 m_upet_32k	.asc "UPET LOW 32K MAP",0
 m_upet_speed	.asc "UPET SPEED (60HZ)",0
 m_upet_rtc	.asc "UPET SRAM/RTC",0
+m_upet_bank1 	.asc "UPET BANK 1 4-7XXX",0
+m_upet_bank2 	.asc "UPET BANK 2 8-BXXX",0
+m_upet_bank3 	.asc "UPET BANK 3 C-FXXX",0
+m_upet_bank8 	.asc "UPET BANK 8 4-7XXX",0
+m_upet_bank9 	.asc "UPET BANK 9 8-BXXX",0
+m_upet_banka 	.asc "UPET BANK A C-FXXX",0
+
 
 initmsg
 	.byt $92		; REV OFF
@@ -818,6 +861,7 @@ intvect	.byt $aa
 	.byt $aa
 
 #include "mod_memtest.a65"
+#include "mod_mem816.a65"
 #include "mod_output.a65"
 
 #include "pet/test_50hz.a65"
@@ -846,6 +890,7 @@ intvect	.byt $aa
 #include "upet/test_wprom.a65"
 #include "upet/test_speed.a65"
 #include "upet/test_rtc.a65"
+#include "upet/test_upmem.a65"
 
 	; check target program area, copy program to $0200 and start it
 endofprg:

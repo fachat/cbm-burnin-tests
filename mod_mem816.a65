@@ -1,0 +1,101 @@
+
+	; --------------------------------------
+	; test memory
+	; set with pattern
+	;
+	; returns with z=1 when ok
+	; returns with z=0 on first error
+	; then:
+	; ac=broken bit
+	; x/y=address (x hi, y lo)
+	; c=0 is read unstable, c=1 write unstable
+memtest816 .(
+
+ptr1b	=ptr2			; bank for ptr1
+tmp2	=ptr2+1
+
+	; bank
+	stx ptr1b
+
+	; native mode
+	clc
+	xce
+
+	ldy #$00
+	sty ptr1
+	tya
+
+xorlp	sta cnt			; XOR counter (only $00, $ff are used)
+
+	.(
+	lda memp1		; start page
+	sta ptr1+1		; actual ptr hi
+
+stloop	clc
+	tya			; index in page
+	adc ptr1+1		; add page number
+	adc pattrn		; add ???
+	eor ptr1b		; bank #
+	eor cnt 		; XOR counter
+	sta [ptr1],y
+	iny
+	bne stloop		; next byte
+
+	lda ptr1+1
+	cmp memp1+1		; end page
+	beq mcheck
+
+	inc ptr1+1		; next page
+	bne stloop
+	.)
+
+	; check pattern
+	
+mcheck 	.(
+	lda memp1
+	sta ptr1+1
+
+chklp	clc
+	tya
+	adc ptr1+1
+	adc pattrn
+	eor cnt 
+	eor ptr1b		; bank #
+	sta tmp2
+	eor [ptr1],y
+	bne merr		; wrong value
+	iny
+	bne chklp		; next byte
+
+	lda ptr1+1
+	cmp memp1+1		; end page
+	beq l178e		; is last page?
+
+	inc ptr1+1		; next page
+	bne chklp
+	.)
+
+l178e	lda cnt 
+	eor #$ff		; is XOR through?
+	bne xorlp		; no, try next
+	beq exit
+
+merr	; analyze error
+	pha			; save bit
+	lda tmp2
+	eor [ptr1],y		; check again
+	beq rderr		; read unstable
+	sec
+	.byt $24
+rderr	clc
+	ldx ptr1+1		; high byte, y already has low byte of addr
+	pla			; restore bit
+exit
+	php
+	sec
+	xce
+	plp
+	rts
+	.)
+
+
