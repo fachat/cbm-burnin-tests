@@ -1,0 +1,43 @@
+
+	;---------------------------------------
+	; CPU detection
+
+	; from the WDC programming manual via
+	; http://forum.6502.org/viewtopic.php?t=485#p55512
+
+	; note: test enter here in 65816 emulation mode
+	;
+	.(
+	sed
+	lda #$99	; decimal 99
+	clc
+	adc #$01	; +1 is 100, i.e. zero with carry
+	cld
+	bmi done	; if 0 does not clear negative flag, it's a 6502 (default)
+
+	; here we have either 65c02 or 65816
+
+	clc
+	xce		; OK to execute unimplemented C02 opcode
+	bcc c02		; branch if it didn't do anything
+	xce		; switch back
+
+	; set 65816 message
+	lda #"8"
+	sta m_cpu
+	dec m_cpu+1
+	lda #"6"
+	sta m_cpu+2
+	bne done
+	
+	; set 65C02 message
+c02	lda #"C"
+	sta m_cpu
+	lda #"0"
+	sta m_cpu+1
+	lda #"2"
+	sta m_cpu+2
+
+done
+	.)	
+
