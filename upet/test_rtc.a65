@@ -119,7 +119,7 @@ tl0
 	inc cntr+1
 	bne tl1
 	lda cntr2
-	beq bad
+	beq badx
 
 tl1 	cpy comp
 	beq tl0
@@ -141,6 +141,8 @@ tloop2	lda #0
 	bne tloop2
 	inc cntr+1
 	bne tloop2
+
+badx	pha
 bad
 	lda #$00
 	ldy #$16
@@ -150,23 +152,46 @@ bad
 	jsr chrout
 	lda comp
 	jsr hexout
+	pla
+	jsr hexout
 	lda cntr+1
 	jsr hexout
 	lda cntr
 	jsr hexout
 	rts
-	
-xloop	lda cntr+1
-	;cmp #1			; @ 4 MHz
-	cmp #4			; @ 12 Mhz
+
+	; counter value depends on speed and code
+	;
+	; Note: as we cound changes in the 1/100s
+	; timer value, we observe the variations that
+	; the RTC chip does to keep the interval 
+	; right on average, without having a 1/100
+	; clock signal available.
+	;
+	; The timer runs 24 intervals with 41 internal
+	; clock cycles, and one interval with 40 clock
+	; cycles, i.e. 1024 internal clock cycles for 
+	; 25/100 sec. The internal clock is 4096 kHz.
+ 
+	; current values are
+	; - $0209 = short 1/100 interval (one of 25)
+	; - $0216/16 = normal 1/100 interval (24/25)	
+	;
+xloop	pha
+	lda cntr+1
+	cmp #2			; @ 12 Mhz
 	bne bad
 	lda cntr
-	;cmp #$99		: @ 4 MHz
-	cmp #0			; @ 12 MHz
+	cmp #$08		; @ 12 MHz
 	bcc bad
-	;cmp #$aa		; @ 4 MHz
-	cmp #2			; @ 12 MHz
+	cmp #$17		; @ 12 MHz
 	bcs bad
+	cmp #$15
+	bcs ok
+	cmp #$0a
+	bcs bad
+ok	
+	pla
 	jmp okout
 	.)
 
@@ -179,42 +204,30 @@ xloop	lda cntr+1
 	; maximum SPI clock speed of the RTC chip
 	; So, to transfer 8 bits at 6MHz, we need 1.3 usec,
 	; which is 16 clock cycles, or 8 NOPs between access.
+
+spiwait	.(
+			; jsr = 5 cycl
+	lda #4		; 2
+wl	sec		; N * 2
+	sbc #1		; N * 2
+	bne wl		; N * 3 - 1
+	rts		; 3
+	.)
+
 w2reg	.(
 	pha
 	lda #5
 	sta SPICTRL
 	lda #WRITE
 	sta SPIDATA
+	jsr spiwait
 	pla
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop			; wait for SPI transfer at 4 MHz
 	sta SPIDATA		; address first byte (from AC)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	sty SPIDATA		; write first data byte 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	stx SPIDATA		; write second data byte
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	lda #0
 	sta SPICTRL		; deselect
 	rts
@@ -228,28 +241,12 @@ w1reg	.(
 	sta SPICTRL
 	lda #WRITE
 	sta SPIDATA
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop			; wait for SPI transfer at 4 MHz
+	jsr spiwait
 	sty SPIDATA		; address first byte (from AC)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	pla
 	sta SPIDATA		; write first data byte 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	lda #0
 	sta SPICTRL		; deselect
 	rts
@@ -261,37 +258,15 @@ r2reg	.(
 	sta SPICTRL
 	lda #READ
 	sta SPIDATA
+	jsr spiwait
 	pla
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 	sta SPIDATA		; address first byte
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	lda #0
 	sta SPIDATA		; trigger first data byte transfer
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	ldy SPIDATA		; read data and trigger next transfer
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	ldx SPIPEEK		; read second (last) byte
 	sta SPICTRL		; deselect
 	rts
@@ -303,29 +278,13 @@ r1reg	.(
 	sta SPICTRL
 	lda #READ
 	sta SPIDATA
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	sty SPIDATA		; address first byte
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
 	lda #0
 	sta SPIDATA		; trigger first data byte transfer
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	jsr spiwait
+	lda #0
 	sta SPICTRL		; deselect
 	lda SPIPEEK		; read last byte
 	rts

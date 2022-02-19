@@ -624,6 +624,12 @@ tests
 
 	.byt 0,1
 	.byt 0,MODE_UPET
+	.word m_up_forceb0
+	.byt 0,0
+	.word test_up_forceb0
+
+	.byt 0,1
+	.byt 0,MODE_UPET
 	.word m_upet_bank1
 	.byt 1,8
 	.word test_upmem
@@ -865,6 +871,7 @@ intvect	.byt $aa
 #include "upet/test_speed.a65"
 #include "upet/test_rtc.a65"
 #include "upet/test_upmem.a65"
+#include "upet/test_forceb0.a65"
 
 	; check target program area, copy program to $0200 and start it
 endofprg:

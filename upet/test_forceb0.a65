@@ -1,0 +1,63 @@
+
+
+m_up_forceb0
+	.asc "UPET FORCE BANK 0",0
+
+test_up_forceb0:
+
+MCTRL	=$e801
+	; ----------------------------------
+	; Micro-PET forceb0 bit 
+	;
+	; setting this bit limits the CPU to bank0
+	; in 6502 emulation mode, no matter
+	; what actual bank is addressed.
+	;
+	; Note that the program is typically
+	; run in emulation mode anyway.
+	;
+	.(
+
+	; check bank rollover disabled
+
+	lda #$e0
+	sta MCTRL
+
+	lda #0
+	sta tmp1
+
+	eor #$ff
+	sta $010000+tmp1
+
+	lda tmp1
+	bne err
+
+	; check bank rollover emabled
+
+	lda #$e1
+	sta MCTRL
+
+	eor #$ff
+	sta $010000+tmp1
+
+	cmp tmp1
+	bne err
+
+	jsr okout
+	jmp exit
+
+err 	lda #$00
+	ldy #$16		; "BAD"
+	jsr badout		; l7c8
+
+exit	lda mode
+	and #MODE_8296
+	beq no8296
+	lda #$e8
+	.byt $2c
+no8296	lda #$e0
+	sta MCTRL
+	rts
+	.)
+
+
