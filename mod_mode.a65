@@ -4,6 +4,7 @@
 	lda #0
 	sta mode
 
+	; ------------------------
 	; CS/A detection
 	.(
 	lda #0
@@ -60,7 +61,6 @@ endfrq	lda #0
         sta SYSPORT
 	.)
 nocsa
-
 
 	;---------------------------------------
 	; check for 8x96
@@ -121,10 +121,39 @@ no8296
 	ora #MODE_UPET
 	sta mode
 	and #MODE_8296
-	beq noupet
+	beq ckultr
 	; we have upet in 8296 mode
 	lda #$e8	; re-enable 8296 mode
 	sta $e801
+
+ckultr
+	; check for Ultra-PET, i.e. colour capability
+	; we do this by checking the mapping of the upper 2k
+	; of the $8xxx video memory window.
+	; in Micro-PET this is immediately behind the first half
+	; in bank 8 (video bank), in the Ultra-PET it is 
+	; in the mapped to 16k behind the character memory in bank 8.
+	
+	lda #$20
+	sta $e802	; standard video mapping
+
+	ldy $8800	; save original value
+
+	; prime test 
+	lda #$55
+	sta $08d000
+	; check
+	asl
+	sta $8800
+	cmp $08d000
+	bne noultra
+
+	; set colour bit
+	lda mode
+	ora #MODE_COLOUR
+	sta mode
+
+noultra	sty $8800
 noupet	stx $9000
 	.)
 
@@ -156,13 +185,20 @@ no4032	stx $8400
 	.(
 	lda mode
 	asl
-	bcs upet
+	bcs upetorultr
 	asl
 	bcs csa
 	asl
 	bcs c8296
 	asl
+	bcs c4032
 	bcc nochg
+
+upetorultr
+	and #MODE_COLOUR*2
+	beq upet
+ultra	ldy #m_ultr-modes+3
+	.byt $2c
 c4032	ldy #m_4032-modes+3
 	.byt $2c
 c8296	ldy #m_8296-modes+3

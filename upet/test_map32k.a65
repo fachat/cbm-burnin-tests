@@ -57,7 +57,7 @@ testcode .(
 	; fill
 	ldy #0
 fill	tya
-	ora #$10	; std CRTC video mapping
+	ora #$20	; std CRTC video mapping
 	sta $e802
 
 	ldx #0
@@ -82,7 +82,7 @@ floop	lda patt
 	; check
 	ldy #0
 check	tya
-	ora #$10
+	ora #$20
 	sta $e802	; 32k bank
 
 	; self-modifying code
@@ -112,7 +112,7 @@ cmpl	cmp TESTAREA+$010000,x
 	clc
 	.byt $24
 err	sec
-	lda #$10
+	lda #$20
 	sta $e802
 	rts
 

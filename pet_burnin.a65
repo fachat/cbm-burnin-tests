@@ -1,13 +1,18 @@
 
+; if defined, print out some measurements for timers etc instead of just OKing
+#define	DEBUG
+
 ; if defined, copy the whole test program into CS/A video RAM to be run there, and take this out of the actual (destructive) test area
 ;#define	RUN_CSA_VMEM		
 
 ; order by preference which name should be displayed
+; note - bit order matters, esp. in mod_mode, to display actual name
 #define	MODE_UPET	%10000000
 #define	MODE_CSA	%01000000
 #define	MODE_8296	%00100000
 #define	MODE_40COL	%00010000
 #define	MODE_2MHZ	%00001000
+#define	MODE_COLOUR	%00000100
 #define	MODE_ANY	%00000001	
 
 #define	SYSPORT		$efe0
@@ -21,9 +26,7 @@ ptr1	= $21			; general pointer / 16 bit counter
 ptr2	= ptr1+2		; general pointer / 16 bit counter (follows ptr1, so used as bank as well)
 cnt	= $25			; general 8 bit counter
 
-mode	= $26			; bit 7: 1=2 MHz
-				; bit 6: 1=8296 detected
-				; bit 5: 1=CS/A MMU detected
+mode	= $26			; see MODE_* bits above
 
 blkno	= $27			; block number for 8x96 test
 memp1	= $28			; memory test pointer
@@ -825,14 +828,15 @@ initmsg
 	.byt $12,$20,"DIAGNOSTIC "
 m_name	.byt "8032 65" 
 m_cpu 	.byt "02 "		; "02" / "C02" / "816"
-	.byt " V4.2 "
-	.byt "DATE: 19-02-2022 CYCLES: 000000 ", 0
+	.byt " V4.3 "
+	.byt "DATE: 13-05-2022 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
 m_8296	.byt "8296"
 m_4032	.byt "4032"
 m_upet	.byt "UPET"
+m_ultr	.byt "ULTR"
 
 intvect	.byt $aa
 	.byt $aa,$aa,$aa

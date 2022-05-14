@@ -25,7 +25,7 @@ test_up_speed:
 	lda ptr1		; low byte is 
 	;sec			; set from cmp above
 	sbc #$13
-	cmp #$2			; 13, 14
+	cmp #$3			; 13, 14 (15 for ultracpu)
 	bcs l14d6		; no then error
 	
 	lda #1		; 2 MHz
@@ -33,11 +33,11 @@ test_up_speed:
 	jsr measure50hz
 
 	lda ptr1+1
-	cmp #$06		; hi byte difference is 5?
+	cmp #$06		; hi byte difference is 6?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
 	sbc #$2c		;
-	cmp #$02		; 2c, 2d
+	cmp #$05		; 2c, 2d (2f,30 for ultracpu)
 	bcs l14d6		; no then error
 
 	lda #2		; 4 MHz
@@ -49,7 +49,7 @@ test_up_speed:
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
 	sbc #$5f
-	cmp #$2			; 5f, 60
+	cmp #$8			; 5f, 60, (-65,66 for ultracpu)
 	bcs l14d6		; no then error
 
 	lda #3		; 12 MHz
@@ -61,7 +61,7 @@ test_up_speed:
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
 	sbc #$2a
-	cmp #$02		; 2a,2b
+	cmp #$14		; 2a,2b (-3c for ultrapet)
 	bcs l14d6		; no then error
 ok
 	jsr okout		; OK
