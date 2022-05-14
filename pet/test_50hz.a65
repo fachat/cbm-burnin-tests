@@ -49,6 +49,12 @@ slow
 	cmp #$3			; 86, 87, 88
 	bcs l14d6		; no then error
 ok
+#ifdef DEBUG
+	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+#endif
 	jsr okout		; OK
 	bne l14dd
 
