@@ -1,4 +1,6 @@
-	
+
+#echo "timer2"
+#print *
 test_timer2:
 	; ----------------------------------
 	; TIMER 2
@@ -6,6 +8,10 @@ test_timer2:
 	; Test by setting timer to $8080 and counting
 	; loops (cycles) until interrupt happens
 	.(
+	; store expected timer value
+	sta ptr2
+	stx ptr2+1
+
 	lda #0
 	sta $e84b		; one-shot timers only
 
@@ -27,6 +33,7 @@ test_timer2:
 
 	; enable interrupt
 	; interrupt routine copies 25/YR to 21/22
+#print *
 l1564	cli
 	lda $e84d		; load IFR
 	sei
@@ -35,6 +42,7 @@ l1564	cli
 
 	; increase counter
 	inc cnt
+#print *
 	bne l1564
 	iny
 	bne l1564
@@ -56,11 +64,18 @@ l157d
 	sta $e84e
 	
 	lda ptr1+1
-	cmp #$06
+	cmp ptr2+1
 	bne l1574
 	lda ptr1
-	cmp #$6c
+	cmp ptr2
 	bne l1574
+
+#ifdef DEBUG
+	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+#endif
 
 	; ok
 l1589	jmp okout	; l7db

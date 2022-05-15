@@ -1,11 +1,20 @@
-	
+
+#echo "timer1"
+#print *
 test_timer1:
 	; ----------------------------------
 	; TIMER 1
 	; 
 	; Test by setting timer to $8080 and counting
 	; loops (cycles) until interrupt happens
+	; 
+	; adapted from original PET burnin program
+	;
 	.(
+	; store expected timer value
+	sta ptr2
+	stx ptr2+1
+
 	lda #0
 	sta $e84b		; single shot timers
 	lda #$7f
@@ -26,7 +35,7 @@ test_timer1:
 	sta $e845		; T1H high byte counter, start timer
 
 	; enable interrupt
-	; interrupt routine (set in 50HZ test) transfers 25/YR to 21/22
+	; interrupt routine (set in 50HZ test) transfers cnt/YR to ptr1/+1
 l1511	cli
 	nop
 	sei
@@ -56,12 +65,18 @@ l1529
 	sta $e84e
 
 	lda ptr1+1
-	cmp #$06
+	cmp ptr2+1
 	bne l1520
 	lda ptr1
-	cmp #$6c
+	cmp ptr2
 	bne l1520
 
+#ifdef DEBUG
+	lda ptr1+1
+	jsr hexout
+	lda ptr1
+	jsr hexout
+#endif
 	; ok
 	jmp okout		; l7db
 	.)

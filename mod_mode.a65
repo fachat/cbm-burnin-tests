@@ -114,7 +114,7 @@ no8296
 	cpx $9000
 	beq noupet	; stays the same even though write potect is off
 
-	lda #3
+	lda #UPET_RUNSPEED
 	sta $e803	; default to 12 MHz
 
 	lda mode
@@ -150,7 +150,7 @@ ckultr
 
 	; set colour bit
 	lda mode
-	ora #MODE_COLOUR
+	ora #MODE_ULTRACOL
 	sta mode
 
 noultra	sty $8800
@@ -195,7 +195,7 @@ no4032	stx $8400
 	bcc nochg
 
 upetorultr
-	and #MODE_COLOUR*2
+	and #MODE_ULTRACOL*2
 	beq upet
 ultra	ldy #m_ultr-modes+3
 	.byt $2c

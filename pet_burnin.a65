@@ -1,9 +1,20 @@
 
 ; if defined, print out some measurements for timers etc instead of just OKing
-#define	DEBUG
+#undef	DEBUG
 
 ; if defined, copy the whole test program into CS/A video RAM to be run there, and take this out of the actual (destructive) test area
 ;#define	RUN_CSA_VMEM		
+
+; run speed for tests on the Micro- and Ultra-PETs
+; 0 = 1 MHz
+; 1 = 2 MHz
+; 2 = 4 MHz
+; 3 = 12.5 MHz
+#define	UPET_RUNSPEED	3
+
+; do not to the extended RAM test,
+; as it takes a lot of time on lower speeds
+#undef	UPET_NOBANKTEST
 
 ; order by preference which name should be displayed
 ; note - bit order matters, esp. in mod_mode, to display actual name
@@ -12,7 +23,7 @@
 #define	MODE_8296	%00100000
 #define	MODE_40COL	%00010000
 #define	MODE_2MHZ	%00001000
-#define	MODE_COLOUR	%00000100
+#define	MODE_ULTRACOL	%00000100
 #define	MODE_ANY	%00000001	
 
 #define	SYSPORT		$efe0
@@ -389,6 +400,9 @@ jmpind	jmp (ptr1)
 	; 	if any bit from byte 2 is set, ignore test
 	; 	if any bit from byte 3 is set, do test 
 	;	BEQ notest
+	; byt 4/5 is address of the message
+	; byt 6/7 are two parameters given to test, 6 given in AC, 7 given in XR
+	; byt 8/9 is address of test executable
 tests
 
 	; RAM $0200-$7FFF (Actually $endofprg-, as it is destructive and should not overwrite this code)
@@ -458,18 +472,36 @@ tests
 	.byt 0,0		; parameters
 	.word test_50hz	; exec addr
 
-	; Timer 1
-	.byt 0,1
-	.byt 0, MODE_ANY
-	.word m_t1
-	.byt 0,0		; parameters
-	.word test_timer1 ; exec addr
+	; timers are there twice, once if system is same speed
+	; as CPU, and once for Ultra-PET that runs tests on 12 MHz
+	; but timers count at 1 MHz.
 
 	; Timer 1
+	.byt 0,1
+	.byt MODE_ULTRACOL, MODE_ANY
+	.word m_t1
+	.byt $6c,$06		; parameters
+	.word test_timer1 ; exec addr
+
+	; Timer 2
 	.byt 1,0
-	.byt 0, MODE_ANY
+	.byt MODE_ULTRACOL, MODE_ANY
 	.word m_t2
-	.byt 0,0		; parameters
+	.byt $6c,$06		; parameters
+	.word test_timer2 ; exec addr
+
+	; Timer 1
+	.byt 0,1
+	.byt 0, MODE_ULTRACOL
+	.word m_t1
+	.byt $d6,$2a		; parameters
+	.word test_timer1 ; exec addr
+
+	; Timer 2
+	.byt 1,0
+	.byt 0, MODE_ULTRACOL
+	.word m_t2
+	.byt $d6,$2a		; parameters
 	.word test_timer2 ; exec addr
 
 	; ----
@@ -631,6 +663,7 @@ tests
 	.byt 0,0
 	.word test_up_forceb0
 
+#ifndef UPET_NOBANKTEST
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_upet_bank1
@@ -642,7 +675,7 @@ tests
 	.word m_upet_bank2
 	.byt 9,$10
 	.word test_upmem
-
+#endif
 	; end marker
 	.word 0
 
@@ -829,7 +862,7 @@ initmsg
 m_name	.byt "8032 65" 
 m_cpu 	.byt "02 "		; "02" / "C02" / "816"
 	.byt " V4.3 "
-	.byt "DATE: 13-05-2022 CYCLES: 000000 ", 0
+	.byt "DATE: 15-05-2022 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"

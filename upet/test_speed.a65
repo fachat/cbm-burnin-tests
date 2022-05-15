@@ -79,7 +79,7 @@ l14d6 	lda #$00
 
 ;
 l14dd	
-	lda #3			; default 4 MHz
+	lda #UPET_RUNSPEED	; default speed
 	sta $e803
 
 	lda #$34		; output CB2, direct control via CRB.3, set CB2 low
