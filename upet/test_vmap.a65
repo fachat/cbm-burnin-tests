@@ -20,6 +20,8 @@ m_upet_vmap
 
 test_vmap .(
 
+VMAPREG	=$e805
+NUMMAPS	=8
 TESTAREA=$8000
 patt	=tmp1
 
@@ -63,12 +65,7 @@ testcode .(
 
 	; fill
 	ldy #0
-fill	tya
-	asl
-	asl
-	asl
-	asl
-	sta $e802
+fill	sty VMAPREG
 
 	ldx #0
 floop	lda patt
@@ -79,7 +76,7 @@ floop	lda patt
 	inc patt	; change for next iteration
 
 	iny
-	cpy #4
+	cpy #NUMMAPS	; number of video mappings
 	bne fill
 	.)
 
@@ -91,15 +88,16 @@ floop	lda patt
 
 	; check
 	ldy #0
-check	tya
-	asl
-	asl
-	asl
-	asl
-	sta $e802	; 32k bank
+check	sty VMAPREG	; 32k bank
+	tya
 
 	; self-modifying code
-	lsr
+	; calculate high byte address
+	; 1=2k in, 2=4k in, etc
+	; 1=$0800, 2=$1000, ...
+	asl
+	asl
+	asl
 	clc
 	adc #>TESTAREA
 	sta cmpl+2	; high address byte
@@ -115,15 +113,15 @@ cmpl	cmp TESTAREA+$080000,x
 	bne cloop
 	inc patt
 	iny
-	cpy #4
+	cpy #NUMMAPS
 	bne check
 	.)
 
 	clc
 	.byt $24
 err	sec
-	lda #$20
-	sta $e802
+	lda #$02
+	sta VMAPREG
 	rts
 
 	.)
