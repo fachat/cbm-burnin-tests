@@ -18,6 +18,9 @@ SPIPEEK	=$e80a
 READ	=%00010011	; read RTCC/SRAM
 WRITE	=%00010010	; write RTCC/SRAM
 
+	lda #3		; full speed
+	sta $e803
+
 	; --------------------------
 	; test SRAM
 
@@ -78,10 +81,10 @@ rtcc	.(
 	lda #1
 	sta cntr2		; init wait timer
 
-	ldy #0			; register 0+1
+	ldy #0			; register 0
 	jsr r1reg
 	sta comp		; value to compare
-	iny
+	iny			; register 1
 	jsr r1reg
 	tax
 	bmi tloop		; is already running
@@ -103,46 +106,53 @@ rtcc	.(
 	jsr w1reg
 
 	; wait for init
-	lda #30
+	lda #60
 	sta cntr2
 
 tloop	.(
+	; count cntr until RTC R0 changes
 	lda #0
 	sta cntr		; count
 	sta cntr+1		; count
 tl0
-	lda #0
+	lda #0			; registers 0/1 to y/x
 	jsr r2reg
 
 	inc cntr
 	bne tl1
 	inc cntr+1
 	bne tl1
+
 	lda cntr2
 	beq badx
 
 tl1 	cpy comp
 	beq tl0
-	sty comp
+	sty comp		; new value to compare
 
 	dec cntr2
 	bne tloop
 	.)
 
+	; reset counter
 	lda #0
 	sta cntr
 	sta cntr+1
-
+	
+	.(
 tloop2	lda #0
 	jsr r2reg
-	cpy comp
-	bne xloop
+	cpy comp		; has value changed?
+	bne xloop		; yes, then exit loop
 	inc cntr
 	bne tloop2
 	inc cntr+1
 	bne tloop2
+	.)
 
-badx	pha
+	; init did not find a change in R0
+badx
+	; counter mismatch
 bad
 	lda #$00
 	ldy #$16
@@ -150,19 +160,20 @@ bad
 	jsr spout
 	lda #"T"
 	jsr chrout
-	lda comp
+	lda comp		; compare value
 	jsr hexout
-	pla
+	lda cntr+1		; counter hi
 	jsr hexout
-	lda cntr+1
+	lda cntr		; counter low
 	jsr hexout
-	lda cntr
-	jsr hexout
+
+	lda #UPET_RUNSPEED
+	sta $e803
 	rts
 
 	; counter value depends on speed and code
 	;
-	; Note: as we cound changes in the 1/100s
+	; Note: as we count changes in the 1/100s
 	; timer value, we observe the variations that
 	; the RTC chip does to keep the interval 
 	; right on average, without having a 1/100
@@ -174,28 +185,30 @@ bad
 	; 25/100 sec. The internal clock is 4096 kHz.
  
 	; current values are
-	; - $0209 = short 1/100 interval (one of 25)
+	; - $02b1 = short 1/100 interval (one of 25)
 	; - $0216/16 = normal 1/100 interval (24/25)	
 	;
-xloop	pha
+xloop	
 	lda cntr+1
-	cmp #1			; @ 12 Mhz
+	cmp #2			; @ 17 Mhz
 	bne bad
 	lda cntr
 	; lowest
-	cmp #$ef		; @ 12 MHz
+	cmp #$b0		; @ 17 MHz
 	bcc bad
 	; highest
-	cmp #$fd		; @ 12 MHz
+	cmp #$b2		; @ 17 MHz
 	bcs bad
-	; lower value of upper interval
-	cmp #$fb
-	bcs ok
-	; upper value of lower interval
-	cmp #$f0
-	bcs bad
+;	; lower value of upper interval
+;	cmp #$fb
+;	bcs ok
+;	; upper value of lower interval
+;	cmp #$f0
+;	bcs bad
 ok	
-	pla
+	lda #UPET_RUNSPEED
+	sta $e803
+
 	jmp okout
 	.)
 
@@ -203,21 +216,26 @@ ok
 	; access routines for the RTC chip. 
 	; using the SPI routines
 	;
-	; note that the test program may run with 12MHz
-	; and the SPI clock runs with 6 MHz to accomodate the 
+	; note that the test program may run with 17.5MHz
+	; and the SPI clock runs with 4 MHz to accomodate the 
 	; maximum SPI clock speed of the RTC chip
-	; So, to transfer 8 bits at 6MHz, we need 1.3 usec,
-	; which is 16 clock cycles, or 8 NOPs between access.
+	; So, to transfer 8 bits at 4MHz, we need 1.8 usec,
+	; which is 31 clock cycles
 
 spiwait	.(
-			; jsr = 5 cycl
-	lda #4		; 2
-wl	sec		; N * 2
-	sbc #1		; N * 2
-	bne wl		; N * 3 - 1
-	rts		; 3
+	bit SPICTRL
+	bmi spiwait
+	rts
+;			; jsr = 5 cycl
+;	lda #4		; 2
+;wl	sec		; N * 2
+;	sbc #1		; N * 2
+;	bne wl		; N * 3 - 1
+;	rts		; 3
 	.)
 
+	; write to bytes
+	; AC= reg#, YR= 1st byte of data, XR 2nd byte of data
 w2reg	.(
 	pha
 	lda #5
@@ -237,7 +255,7 @@ w2reg	.(
 	rts
 	.)
 
-
+	; write one byte
 	; YR= reg#, AC= data
 w1reg	.(
 	pha
@@ -256,6 +274,8 @@ w1reg	.(
 	rts
 	.)
 
+	; read two bytes
+	; AC= reg#, out -> YR= 1st byte of data, XR 2nd byte of data
 r2reg	.(
 	pha
 	lda #5
@@ -276,6 +296,7 @@ r2reg	.(
 	rts
 	.)
 
+	; read one byte
 	; YR= reg#, out -> AC=data, YR unmodified
 r1reg	.(
 	lda #5

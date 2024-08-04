@@ -15,15 +15,21 @@ test_up_speed:
 	;
 	.(
 
+TARGET_1M	=$0334
+TARGET_2M	=$066f
+TARGET_4M	=$0ce5
+TARGET_FULL	=$33a8
+
 	lda #0		; 1 MHz
 	sta $e803
 	jsr measure50hz
 
+	; target counter $0334, $0335, ... $0336
 	lda ptr1+1
-	cmp #$03		; hi byte difference is 3?
+	cmp #>TARGET_1M		; hi byte difference is 3?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$35
+	sbc #<TARGET_1M
 	cmp #$3			; account for jitter
 	bcs l14d6		; no then error
 	
@@ -31,11 +37,12 @@ test_up_speed:
 	sta $e803
 	jsr measure50hz
 
+	; target counter $0670, $0671, ... $0674
 	lda ptr1+1
-	cmp #$06		; hi byte difference is 6?
+	cmp #>TARGET_2M		; hi byte difference is 6?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$70		;
+	sbc #<TARGET_2M		;
 	cmp #5			; account for jitter
 	bcs l14d6		; no then error
 
@@ -43,11 +50,12 @@ test_up_speed:
 	sta $e803
 	jsr measure50hz
 
+	; target counter $0ce5, $0ce6, ... $0ce9
 	lda ptr1+1
-	cmp #$0c		; hi byte difference is 12?
+	cmp #>TARGET_4M		; hi byte difference is 12?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$e6
+	sbc #<TARGET_4M
 	cmp #$5			; account for jitter
 	bcs l14d6		; no then error
 
@@ -55,11 +63,12 @@ test_up_speed:
 	sta $e803
 	jsr measure50hz
 
+	; target counter $33a8, ... $33ad
 	lda ptr1+1
-	cmp #$33		; hi byte difference 
+	cmp #>TARGET_FULL	; hi byte difference 
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$a9
+	sbc #<TARGET_FULL
 	cmp #$5			; account for jitter
 	bcs l14d6		; no then error
 ok

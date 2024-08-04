@@ -11,6 +11,7 @@
 ; 2 = 4 MHz
 ; 3 = 12.5 MHz
 #define	UPET_RUNSPEED	3
+;#define	UPET_RUNSPEED	2
 
 ; do not to the extended RAM test,
 ; as it takes a lot of time on lower speeds
@@ -494,14 +495,16 @@ tests
 	.byt 0,1
 	.byt 0, MODE_ULTRACOL
 	.word m_t1
-	.byt $d6,$2a		; parameters
+	;.byt $d6,$2a		; parameters
+	.byt $ba,$66		; parameters
 	.word test_timer1 ; exec addr
 
 	; Timer 2
 	.byt 1,0
 	.byt 0, MODE_ULTRACOL
 	.word m_t2
-	.byt $d6,$2a		; parameters
+	;.byt $d6,$2a		; parameters
+	.byt $ba,$66		; parameters
 	.word test_timer2 ; exec addr
 
 	; ----
@@ -796,15 +799,22 @@ irq	.(
 	lda cnt
 	sta ptr1
 	sty ptr1+1		; y leaks through from main program
+	
+	lda $e84d		; IFR
+	sta viaifr
+	lda #$7f
+	sta $e84d
+
 	pla
 	tay
 	pla
 	tax
 	pla
 	bit $e812
-	bit $e84d
 	rti
 	.)
+
+viaifr	.byt 0
 
 	; ---------------------
 okstr	.byt "O", "K"+$80
