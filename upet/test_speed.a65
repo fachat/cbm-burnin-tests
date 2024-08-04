@@ -23,9 +23,8 @@ test_up_speed:
 	cmp #$03		; hi byte difference is 3?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	;sec			; set from cmp above
-	sbc #$13
-	cmp #$3			; 13, 14 (15 for ultracpu)
+	sbc #$35
+	cmp #$3			; account for jitter
 	bcs l14d6		; no then error
 	
 	lda #1		; 2 MHz
@@ -36,8 +35,8 @@ test_up_speed:
 	cmp #$06		; hi byte difference is 6?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$2c		;
-	cmp #$05		; 2c, 2d (2f,30 for ultracpu)
+	sbc #$70		;
+	cmp #5			; account for jitter
 	bcs l14d6		; no then error
 
 	lda #2		; 4 MHz
@@ -48,20 +47,20 @@ test_up_speed:
 	cmp #$0c		; hi byte difference is 12?
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$5f
-	cmp #$8			; 5f, 60, (-65,66 for ultracpu)
+	sbc #$e6
+	cmp #$5			; account for jitter
 	bcs l14d6		; no then error
 
-	lda #3		; 12 MHz
+	lda #3		; 17 MHz
 	sta $e803
 	jsr measure50hz
 
 	lda ptr1+1
-	cmp #$25		; hi byte difference is $25
+	cmp #$33		; hi byte difference 
 	bne l14d6		; no, then error
 	lda ptr1		; low byte is 
-	sbc #$2a
-	cmp #$14		; 2a,2b (-3c for ultrapet)
+	sbc #$a9
+	cmp #$5			; account for jitter
 	bcs l14d6		; no then error
 ok
 	jsr okout		; OK
@@ -72,6 +71,8 @@ l14d6 	lda #$00
 	jsr badout		; l7c8
 
 	jsr spout
+	lda $e803
+	jsr hexout
 	lda ptr1+1
 	jsr hexout
 	lda ptr1

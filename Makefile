@@ -4,7 +4,7 @@ PRGS=romchk
 all: pet_burnin romcheck
 
 pet_burnin: pet_burnin.a65 *.a65 */*.a65
-	xa -w -M -l $@.lab -o $@ $<
+	xa -w -XMASM -l $@.lab -o $@ $<
 
 pet_burnin.hex: 
 	hexdump -C $@ > $@.hex
