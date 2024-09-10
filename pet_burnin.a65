@@ -376,7 +376,7 @@ endloop	clc
 
 	; print cycle counter on screen
 	ldy #0
-	lda #$3d
+	lda #$3f
 	jsr goxy
 
 	lda #$80		; REV flag
@@ -867,12 +867,12 @@ initmsg
 	.byt $92		; REV OFF
 	.byt "   "
 	.byt "   "
-	.byt "  "
 	.byt $12,$20,"DIAGNOSTIC "
 m_name	.byt "8032 65" 
-m_cpu 	.byt "02 "		; "02" / "C02" / "816"
-	.byt " V4.3 "
-	.byt "DATE: 15-05-2022 CYCLES: 000000 ", 0
+m_cpu 	.byt "02  "		; "02" / "C02" / "816"
+m_mhz	.byt "1 MHZ"
+	.byt " V4.4 "
+	.byt "DATE: 11-09-24 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
