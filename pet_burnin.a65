@@ -11,6 +11,7 @@
 ; 2 = 4 MHz
 ; 3 = 12.5 MHz
 #define	UPET_RUNSPEED	3
+;#define	UPET_RUNSPEED	2
 
 ; do not to the extended RAM test,
 ; as it takes a lot of time on lower speeds
@@ -375,7 +376,7 @@ endloop	clc
 
 	; print cycle counter on screen
 	ldy #0
-	lda #$3d
+	lda #$3f
 	jsr goxy
 
 	lda #$80		; REV flag
@@ -494,14 +495,16 @@ tests
 	.byt 0,1
 	.byt 0, MODE_ULTRACOL
 	.word m_t1
-	.byt $d6,$2a		; parameters
+	;.byt $d6,$2a		; parameters
+	.byt $ba,$66		; parameters
 	.word test_timer1 ; exec addr
 
 	; Timer 2
 	.byt 1,0
 	.byt 0, MODE_ULTRACOL
 	.word m_t2
-	.byt $d6,$2a		; parameters
+	;.byt $d6,$2a		; parameters
+	.byt $ba,$66		; parameters
 	.word test_timer2 ; exec addr
 
 	; ----
@@ -796,15 +799,22 @@ irq	.(
 	lda cnt
 	sta ptr1
 	sty ptr1+1		; y leaks through from main program
+	
+	lda $e84d		; IFR
+	sta viaifr
+	lda #$7f
+	sta $e84d
+
 	pla
 	tay
 	pla
 	tax
 	pla
 	bit $e812
-	bit $e84d
 	rti
 	.)
+
+viaifr	.byt 0
 
 	; ---------------------
 okstr	.byt "O", "K"+$80
@@ -857,12 +867,12 @@ initmsg
 	.byt $92		; REV OFF
 	.byt "   "
 	.byt "   "
-	.byt "  "
 	.byt $12,$20,"DIAGNOSTIC "
 m_name	.byt "8032 65" 
-m_cpu 	.byt "02 "		; "02" / "C02" / "816"
-	.byt " V4.3 "
-	.byt "DATE: 15-05-2022 CYCLES: 000000 ", 0
+m_cpu 	.byt "02  "		; "02" / "C02" / "816"
+m_mhz	.byt "1 MHZ"
+	.byt " V4.4 "
+	.byt "DATE: 11-09-24 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"

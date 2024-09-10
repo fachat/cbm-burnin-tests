@@ -184,6 +184,12 @@ no4032	stx $8400
 	; put mode info on screen
 	.(
 	lda mode
+	and #MODE_2MHZ
+	beq not2m
+	lda #"2"
+	sta m_mhz
+not2m
+	lda mode
 	asl
 	bcs upetorultr
 	asl
@@ -195,6 +201,10 @@ no4032	stx $8400
 	bcc nochg
 
 upetorultr
+	pha
+	lda #"7"
+	sta m_mhz+1
+	pla
 	and #MODE_ULTRACOL*2
 	beq upet
 ultra	ldy #m_ultr-modes+3

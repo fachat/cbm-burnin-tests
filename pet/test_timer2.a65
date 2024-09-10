@@ -23,9 +23,13 @@ test_timer2:
 
 	ldy #$00		; initialize 25/YR counter
 	sty cnt
-	
+
+	sty viaifr
+
+	dey	
 	sty ptr1		; initialize counter snapshot
-	sty ptr1+1
+	sty ptr1+1		; with $ffff for no interrupt at all
+	iny
 
 	lda #$80		; set T2 to $8080
 	sta $e848		; T2L latch
@@ -33,11 +37,13 @@ test_timer2:
 
 	; enable interrupt
 	; interrupt routine copies 25/YR to 21/22
+	lda #$20
 #print *
 l1564	cli
-	lda $e84d		; load IFR
+	nop
 	sei
-	and #$20		; check T2 interrupt
+	;bit $e84d		; check T2 interrupt
+	bit viaifr		; check T2 interrupt
 	bne l157d		; yes, had an interrupt
 
 	; increase counter

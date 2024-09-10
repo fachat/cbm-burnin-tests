@@ -11,7 +11,7 @@ test_timer1:
 	; adapted from original PET burnin program
 	;
 	.(
-	; store expected timer value
+	; store expected timer value (from setup table)
 	sta ptr2
 	stx ptr2+1
 
@@ -26,8 +26,12 @@ test_timer1:
 	ldy #$00		; initialize 25/YR timer
 	sty cnt
 
+	sty viaifr
+
+	dey
 	sty ptr1		; initialize timer snapshot
-	sty ptr1+1
+	sty ptr1+1		; with $ff to distinguish no int (ff) from fast int (00)
+	iny
 
 	; set timer to $8080
 	lda #$80
@@ -39,7 +43,8 @@ test_timer1:
 l1511	cli
 	nop
 	sei
-	bit $e84d		; did we have an interrupt?
+	;bit $e84d		; did we have an interrupt?
+	bit viaifr		; did we have an interrupt?
 	bvs l1529		; yes, T1 interrupt
 
 	; increase 25/YR counter
