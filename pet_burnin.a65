@@ -642,10 +642,16 @@ tests
 	.word test_wprom
 
 	.byt 0,1
-	.byt 0,MODE_UPET
+	.byt MODE_ULTRACOL,MODE_UPET
 	.word m_upet_speed
 	.byt 0,0
 	.word test_up_speed
+
+	.byt 0,1
+	.byt 0,MODE_ULTRACOL
+	.word m_upet_speed
+	.byt 0,0
+	.word test_ultra_speed
 
 	.byt 0,1
 	.byt 0,MODE_UPET
@@ -871,8 +877,8 @@ initmsg
 m_name	.byt "8032 65" 
 m_cpu 	.byt "02  "		; "02" / "C02" / "816"
 m_mhz	.byt "1 MHZ"
-	.byt " V4.4 "
-	.byt "DATE: 11-09-24 CYCLES: 000000 ", 0
+	.byt " V4.5 "
+	.byt "DATE: 15-09-24 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
@@ -916,6 +922,7 @@ intvect	.byt $aa
 #include "upet/test_vmap.a65"
 #include "upet/test_wprom.a65"
 #include "upet/test_speed.a65"
+#include "upet/test_ultra_speed.a65"
 #include "upet/test_rtc.a65"
 #include "upet/test_upmem.a65"
 #include "upet/test_forceb0.a65"

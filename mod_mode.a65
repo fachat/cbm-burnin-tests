@@ -127,6 +127,7 @@ no8296
 	sta $e801
 
 ckultr
+
 	; check for Ultra-PET, i.e. colour capability
 	; we do this by checking the mapping of the upper 2k
 	; of the $8xxx video memory window.
@@ -134,8 +135,8 @@ ckultr
 	; in bank 8 (video bank), in the Ultra-PET it is 
 	; in the mapped to 16k behind the character memory in bank 8.
 	
-	lda #$20
-	sta $e802	; standard video mapping
+	lda #$02
+	sta $e805	; standard video mapping
 
 	ldy $8800	; save original value
 
@@ -201,27 +202,31 @@ not2m
 	bcc nochg
 
 upetorultr
-	pha
-	lda #"7"
-	sta m_mhz+1
-	pla
 	and #MODE_ULTRACOL*2
 	beq upet
+
+	lda #"7"
+	sta m_mhz+1
 ultra	ldy #m_ultr-modes+3
+	bne doset
+
+upet 	lda #"2"
+	sta m_mhz+1
+
+	ldy #m_upet-modes+3
 	.byt $2c
 c4032	ldy #m_4032-modes+3
 	.byt $2c
 c8296	ldy #m_8296-modes+3
 	.byt $2c
-upet	ldy #m_upet-modes+3
-	.byt $2c
 csa	ldy #m_csa-modes+3
-	ldx #3
+doset	ldx #3
 mloop	lda modes,y
 	sta m_name,x
 	dey
 	dex
 	bpl mloop
 nochg	.)
+
 	
 

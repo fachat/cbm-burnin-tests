@@ -1,5 +1,5 @@
 
-test_up_speed:
+test_ultra_speed:
 	; ----------------------------------
 	; Micro-PET speed 
 	;
@@ -15,10 +15,10 @@ test_up_speed:
 	;
 	.(
 
-TARGET_1M	=$0313
-TARGET_2M	=$062c
-TARGET_4M	=$0c5f
-TARGET_FULL	=$252a
+TARGET_1M	=$0334
+TARGET_2M	=$066f
+TARGET_4M	=$0ce5
+TARGET_FULL	=$33a8
 
 	lda #0		; 1 MHz
 	sta $e803
