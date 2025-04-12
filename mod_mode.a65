@@ -120,11 +120,6 @@ no8296
 	lda mode
 	ora #MODE_UPET
 	sta mode
-	and #MODE_8296
-	beq ckultr
-	; we have upet in 8296 mode
-	lda #$e8	; re-enable 8296 mode
-	sta $e801
 
 ckultr
 
@@ -155,6 +150,17 @@ ckultr
 	sta mode
 
 noultra	sty $8800
+
+	; move restore of 8296 mode after colour check
+	; as 8296 disables colour mem mapping in second half
+	; of $8xxx window, so ultra check would always fail.	
+	lda mode
+	and #MODE_8296
+	beq noupet
+	; we have upet in 8296 mode
+	lda #$e8	; re-enable 8296 mode
+	sta $e801
+
 noupet	stx $9000
 	.)
 
@@ -205,7 +211,7 @@ upetorultr
 	and #MODE_ULTRACOL*2
 	beq upet
 
-	lda #"7"
+	lda #"3"
 	sta m_mhz+1
 ultra	ldy #m_ultr-modes+3
 	bne doset

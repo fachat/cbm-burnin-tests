@@ -74,10 +74,10 @@ floop	lda patt
 	inx
 	bne floop
 	inc patt	; change for next iteration
-
+skip
 	iny
 	cpy #NUMMAPS	; number of video mappings
-	bne fill
+	bcc fill
 	.)
 
 	; -----------
@@ -89,8 +89,17 @@ floop	lda patt
 	; check
 	ldy #0
 check	sty VMAPREG	; 32k bank
-	tya
 
+	; check 8296 mode as this maps in 4k steps not 2k
+;	lda mode
+;	and #MODE_8296
+;	beq docheck
+;	tya
+;	lsr
+;	bcc docheck
+;	iny
+;docheck
+	tya
 	; self-modifying code
 	; calculate high byte address
 	; 1=2k in, 2=4k in, etc

@@ -1,7 +1,7 @@
 
 test_ultra_speed:
 	; ----------------------------------
-	; Micro-PET speed 
+	; Micro-/Ultra-PET speed (FPGA)
 	;
 	; test works by running in interrupt routine
 	; on the VSYNC signal input (PIA1 CB1). Counts
@@ -15,10 +15,17 @@ test_ultra_speed:
 	;
 	.(
 
-TARGET_1M	=$0334
-TARGET_2M	=$066f
-TARGET_4M	=$0ce5
-TARGET_FULL	=$33a8
+; 17.5M system clock
+;TARGET_1M	=$0334
+;TARGET_2M	=$066f
+;TARGET_4M	=$0ce5
+;TARGET_FULL	=$33a8
+
+; 13.5M system clock
+TARGET_1M	=$0386
+TARGET_2M	=$0712
+TARGET_4M	=$0e2a	; e2b
+TARGET_FULL	=$2fdf
 
 	lda #0		; 1 MHz
 	sta $e803

@@ -1,7 +1,7 @@
 
 test_up_speed:
 	; ----------------------------------
-	; Micro-PET speed 
+	; Micro-PET (CPLD) speed 
 	;
 	; test works by running in interrupt routine
 	; on the VSYNC signal input (PIA1 CB1). Counts
@@ -15,10 +15,12 @@ test_up_speed:
 	;
 	.(
 
+; 17.5 MHz system clock values
 TARGET_1M	=$0313
 TARGET_2M	=$062c
 TARGET_4M	=$0c5f
 TARGET_FULL	=$252a
+
 
 	lda #0		; 1 MHz
 	sta $e803

@@ -477,6 +477,7 @@ tests
 	; as CPU, and once for Ultra-PET that runs tests on 12 MHz
 	; but timers count at 1 MHz.
 
+	; -- Timer for Standard PET
 	; Timer 1
 	.byt 0,1
 	.byt MODE_ULTRACOL, MODE_ANY
@@ -491,12 +492,14 @@ tests
 	.byt $6c,$06		; parameters
 	.word test_timer2 ; exec addr
 
+	; -- Timer for Ultra PET
 	; Timer 1
 	.byt 0,1
 	.byt 0, MODE_ULTRACOL
 	.word m_t1
 	;.byt $d6,$2a		; parameters
-	.byt $ba,$66		; parameters
+	;.byt $ba,$66		; parameters 17.5m
+	.byt $63,$56		; parameters 13.5m
 	.word test_timer1 ; exec addr
 
 	; Timer 2
@@ -504,7 +507,8 @@ tests
 	.byt 0, MODE_ULTRACOL
 	.word m_t2
 	;.byt $d6,$2a		; parameters
-	.byt $ba,$66		; parameters
+	;.byt $ba,$66		; parameters 17.5m
+	.byt $66,$56		; parameters 13.5m
 	.word test_timer2 ; exec addr
 
 	; ----
@@ -877,8 +881,8 @@ initmsg
 m_name	.byt "8032 65" 
 m_cpu 	.byt "02  "		; "02" / "C02" / "816"
 m_mhz	.byt "1 MHZ"
-	.byt " V4.5 "
-	.byt "DATE: 15-09-24 CYCLES: 000000 ", 0
+	.byt " V4.6 "
+	.byt "DATE: 12-04-25 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
