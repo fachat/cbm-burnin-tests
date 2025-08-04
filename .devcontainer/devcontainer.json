@@ -1,0 +1,20 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+{
+	"name": "CBM Burnin Tests",
+
+	// Use Dockerfile for custom Alpine image with xa65 assembler
+	"dockerFile": "Dockerfile",
+
+	// Install extension for Makefile support
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.makefile-tools"
+			]
+		}
+	},
+
+	// Connect as the vscode user (non-root)
+	"remoteUser": "vscode"
+}
