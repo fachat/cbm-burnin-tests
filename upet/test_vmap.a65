@@ -20,10 +20,12 @@ m_upet_vmap
 
 test_vmap .(
 
+VCTRL	=$e800
 VMAPREG	=$e805
 NUMMAPS	=8
 TESTAREA=$8000
 patt	=tmp1
+
 
 	ldx #0
 savel	lda TESTAREA,x
@@ -31,8 +33,21 @@ savel	lda TESTAREA,x
 	inx
 	bne savel
 
+	lda VMAPREG
+	pha
+	lda MCTRL
+	pha
+	and #%11110111
+	sta MCTRL
+
 	jsr testcode
 
+	pla
+	sta MCTRL
+	pla
+	sta VMAPREG
+
+	; only C is interesting
 	php
 	tya
 	pha
@@ -45,6 +60,8 @@ restl	lda buffer,x
 	pla
 	plp
 	bcs bad
+
+
 	jmp okout
 bad	;tya		; 32k bank
 	jsr hexout
@@ -52,6 +69,10 @@ bad	;tya		; 32k bank
 	txa
 	jsr hexout
 	jsr spout
+
+	pla
+	sta VCTRL
+
 	ldy #22
 	jmp errout	
 
@@ -129,8 +150,6 @@ cmpl	cmp TESTAREA+$080000,x
 	clc
 	.byt $24
 err	sec
-	lda #$02
-	sta VMAPREG
 	rts
 
 	.)

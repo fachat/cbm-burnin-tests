@@ -2,12 +2,18 @@
         ; ----------------------------------
         ; FPLA II test
         ;
-        ;
 test_fpla
         .(      
         ; we have an 8x96
 
 
+	; prep test data bytes at $b000 and $c000
+	; in lower setting
+	; 	$b000 <- $30
+	; 	$c000 <- $40
+	; in upper setting
+	; 	$b000 <- $34
+	;	$c000 <- $48
         lda #$80
 l15aa   sta $fff0               ; enable 8x96 mapping
 
@@ -28,6 +34,21 @@ l15aa   sta $fff0               ; enable 8x96 mapping
         cmp #$80                ; are we through yet with both values?
         bne l15aa               ; no, loop
 
+	; test data setup done
+	; now do the test
+	;
+	; if error,
+	; * 1st error byte is MMU value
+	; * 2nd error byte is test situation:
+	; * 3rd error byte is expected value (where applicable)
+	;
+	; - 0:	lower block ($b000) does not have expected value
+	; - 1:	upper block ($c000) does not have expected value
+	; - 2:	I/O peekthrough
+	; - 3:	screen peekthrough
+	; - 4:	write protect lower block
+	; - 5:	write protect upper block
+
         sta cnt                 ; store #$80 in tmp as start value
 l15cb   sta $fff0               ; set block config
 
@@ -37,20 +58,22 @@ l15cb   sta $fff0               ; set block config
         bne l1640               ; if bit 4 (reserved) is set, skip test
 
         ; check lower block
+	ldy $b000
         lda cnt
         and #$84
         clc
         adc #$b0
         eor $b000
-        bne l1650               ; error
+        bne l1650a              ; error
 	inx			; next errcode
         ; check upper block
+	ldy $c000
         lda cnt
         and #$88
         clc
         adc #$c0
         eor $c000
-        bne l1650               ; error
+l1650a  bne l1650               ; error
 	inx			; next errcode
 
         ; check I/O peekthrough
@@ -79,6 +102,7 @@ l1604   lda cnt
         eor cnt
         sta $fff0               ; disable mapping 
         lda $85a0               ; load screen location value
+	tay
         pha
         lda cnt
         sta $fff0               ; enable mapping
@@ -95,6 +119,7 @@ l161e   lda cnt
         lda #$aa
         sta $b000               ; write pattern
         lda $b000
+	tay
         eor #$aa                ; compare pattern
         beq l1650               ; same - write was successful -> BAD
 	inx			; next errcode
@@ -105,7 +130,9 @@ l1630   lda cnt
 
         lda #$aa
         sta $c000               ; write pattern
-        eor $c000               ; compare pattern
+	lda $c000
+	tay
+	eor #$aa
         beq l1650               ; same - write was successful -> BAD
 	inx			; next errcode
 
@@ -128,6 +155,8 @@ l1650   ldy #$60
 	lda cnt
 	jsr hexout
 	txa
+	jsr hexout
+	tya
 	jsr hexout
 	jsr spout
 

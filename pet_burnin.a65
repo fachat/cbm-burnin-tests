@@ -58,6 +58,13 @@ trhold	= $39			; row where last test in left row was displayed
 trmax	= $3a			; lowest row where test was displayed
 tcol	= $3b			; col where test is displayed
 
+#ifdef ROM
+
+rom_start	=$1000
+rom_len		=$2000
+
+	* = rom_start
+#else
 	.word $0400
 	* = $0400
 
@@ -72,7 +79,8 @@ link	.byt $00,$00
 	;.dsb $2000-*, $aa
 
 	.dsb $0410-*, $aa
-l1000	; start of program
+	; start of program
+#endif
 
 	sei
 
@@ -511,7 +519,9 @@ tests
 	.byt $66,$56		; parameters 13.5m
 	.word test_timer2 ; exec addr
 
-	; ----
+	; ---------------------------------------------------------------------------------
+
+
 	; 8296 block tests
 	.byt 0,1
 	.byt 0, MODE_8296
@@ -537,6 +547,7 @@ tests
 	.byt 3,0		; blockno
 	.word test_8296
 
+
 	; 8296 FPLA MMU
 	; note: needs to be _after_ 8296 block tests, as they init some memory tested here
 	.byt 1,0
@@ -545,7 +556,16 @@ tests
 	.byt 0,0		; blockno
 	.word test_fpla
 
-	; ----
+;	; 8296 Video memory test
+;	.byt 1,0
+;	.byt 0, MODE_8296
+;	.word m_96_vid
+;	.byt 0,0		; blockno
+;	.word test_fpla
+;	;.word test_8296_vmem
+
+
+	; ---------------------------------------------------------------------------------
 	; CS/A Video RAM $011800 - must not cross 16k boundaries
 	.byt 0,1
 	.byt 0,MODE_CSA
@@ -625,7 +645,7 @@ tests
 	.byt 0,0		; start page in bank 1, number of pages-1
 	.word test_atna ; exec addr
 
-	; ----
+	; ---------------------------------------------------------------------------------
 	; Micro-PET checks
 	.byt 0,1
 	.byt 0,MODE_UPET
@@ -786,7 +806,8 @@ l1734	pla
 
 	; output OK
 	; only in first cycle, don't overwrite potential errors in later cycles
-okout	ldy #$00
+okout	.(
+	ldy #$00
 	lda cycles
 	ora cycles+1
 	ora cycles+2
@@ -796,8 +817,7 @@ l1747	lda okstr,y	; l8f5,y
 	jsr chrout	; l742
 	bpl l1747
 l1750	rts
-
-
+	.)
 
 	; ---------------------
 	; used in the 50 HZ IRQ test
@@ -853,6 +873,7 @@ m_96_1		.asc "8X96 BLOCK 1",0
 m_96_2		.asc "8X96 BLOCK 2",0
 m_96_3		.asc "8X96 BLOCK 3",0
 m_96_mm		.asc "8X96 FPLA II",0
+m_96_vid	.asc "8X96 VIDMEM",0
 
 m_csa_vm1	.asc "VMEM 10000-13FFF",0
 m_csa_vm2	.asc "VMEM 14000-17FFF",0
@@ -940,6 +961,9 @@ buffer	=endofprg
 inicopy
 #include "mod_inicopy.a65"
 
+#ifdef ROM
+	.dsb rom_start+rom_len-*,$ff
+#endif
 
 #print *
 
