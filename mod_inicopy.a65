@@ -55,7 +55,8 @@ l107e   dex
         bne l107e
         txa
         sta $8000,y
-hang    jmp hang
+hang    inc $8000
+	jmp hang
         .)
 
 	;.byt $f0,$c5	; TODO: remove

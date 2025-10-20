@@ -104,9 +104,9 @@ chrout	.(
 	lda screen
 	sta scrptr
 	lda screen+1
-	sta scrptr
+	sta scrptr+1
 	ldy #0
-	lda #" "
+clr0	lda #" "
 clr1	sta (scrptr),y
 	iny
 	bne clr1
@@ -115,7 +115,7 @@ clr1	sta (scrptr),y
 	sec
 	sbc screen+1
 	cmp #8
-	bcc clr1
+	bcc clr0
 
 lhome	lda screen+1		; scr ptr to start of screen
 	sta scrptr+1		; scr ptr
