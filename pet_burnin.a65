@@ -699,13 +699,13 @@ tests
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_up_bogus0
-	.byt $fb, $fa		; number of real CPU cycles in test loop
+	.byt $fa, $fa		; number of real CPU cycles in test loop
 	.word test_up_bogus0
 
 	.byt 0,1
 	.byt 0,MODE_UPET
 	.word m_up_bogus1
-	.byt $fb, $fc		; number of slow CPU cycles in test loop
+	.byt $f9, $fc		; number of slow CPU cycles in test loop
 	.word test_up_bogus1
 
 #ifndef UPET_NOBANKTEST
