@@ -56,16 +56,28 @@ bloop	dex		; 256 * 2	; 256 * 1 (only opcode fetch)
 	lda $e844	; $ffff-$502-2	; $ffff-$302-2
 	ldx $e845
 
-	cmp ptr2
-	bne bad
-	cpx ptr2+1		
-	bne bad
-
-	jmp okout
-bad
 	pha
 	phx
 
+	; we allow a slack of 1, as it seems during
+	; bogus hiding, it may depend on other timing effects
+	; if it is the base or +1 value.
+	sec
+	sbc ptr2
+	sta ptr2
+	txa
+	sbc ptr2+1
+	sta ptr2+1
+	bne bad
+	lda ptr2
+	and #%11111110
+	bne bad
+
+	plx
+	pla
+
+	jmp okout
+bad
 	lda #$00
 	ldy #$16	; BAD
 	jsr badout
@@ -73,8 +85,6 @@ bad
 	pla
 	jsr hexout
 	pla
-	jsr hexout
-	lda $e803
 	jmp hexout
 	
 	.)
