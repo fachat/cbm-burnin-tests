@@ -133,6 +133,15 @@ offset	=*-$0200
 nocsa
 #endif
 
+	; ultracol video memory size
+	lda mode
+	and #MODE_ULTRACOL
+	beq no_ucol
+	lda $e800
+	and #%10011111
+	ora #%01000000
+	sta $e800
+no_ucol
 	;---------------------------------------
 	; to be replaced/removed (once my CS/A ROM auto-detects speed and sets CRTC correctly)
 	.(
@@ -506,7 +515,7 @@ tests
 	;.byt $d6,$2a		; parameters
 	;.byt $ba,$66		; parameters 17.5m
 	;.byt $63,$56		; parameters 13.5m
-	.byt $50,$50		; parameters 13.5m
+	.byt $27,$54		; parameters 13.5m
 	.word test_timer1 ; exec addr
 
 	; Timer 2
