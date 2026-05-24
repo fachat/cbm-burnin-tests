@@ -506,7 +506,7 @@ tests
 	;.byt $d6,$2a		; parameters
 	;.byt $ba,$66		; parameters 17.5m
 	;.byt $63,$56		; parameters 13.5m
-	.byt $27,$52		; parameters 13.5m
+	.byt $50,$50		; parameters 13.5m
 	.word test_timer1 ; exec addr
 
 	; Timer 2
@@ -516,7 +516,7 @@ tests
 	;.byt $d6,$2a		; parameters
 	;.byt $ba,$66		; parameters 17.5m
 	;.byt $66,$56		; parameters 13.5m
-	.byt $2b,$52		; parameters 13.5m
+	.byt $26,$54		; parameters 13.5m
 	.word test_timer2 ; exec addr
 
 	; ---------------------------------------------------------------------------------
