@@ -1,0 +1,82 @@
+
+m_up_bogus0
+	.asc "SLOW BOGUS CYCLES",0
+
+m_up_bogus1
+	.asc "FAST BOGUS CYCLES",0
+
+#echo "test bogus cycles"
+#print *
+
+test_up_bogus0:
+	; ----------------------------------
+	; Tests the speed when not hiding bogus CPU cycles
+	; in the Phase1 part of the clock on a 1MHz mode
+	;
+	; re-uses the original Timer 1 test
+	;
+	;
+	ldy #0	; 1 MHz with fast bogus cycles
+	.byt $2c
+
+test_up_bogus1:
+	ldy #128	; 1 MHz with slow bogus cycles
+
+	.(
+	sta ptr2
+	stx ptr2+1
+
+	lda $e803
+	pha
+	sty $e803
+
+	jsr do_test
+
+	pla
+	sta $e803
+	rts
+
+do_test
+	lda #0
+	sta $e84b	; single shot
+	lda #$7f
+	sta $e84e	; disable all via ints
+	sta $e84d	; clr all int flags
+
+	; set and start timer
+	lda #$ff
+	sta $e844
+	sta $e845	; start timer at $ffff (plus 2 cycle delay in starting)
+
+			; slow cycles	; fast cycles
+	ldx #0		; 2 cycles	; 2 cycles
+bloop	dex		; 256 * 2	; 256 * 1 (only opcode fetch)
+	bne bloop	; 256 * 3	; 256 * 2 (only opcode fetch)
+
+	lda $e844	; $ffff-$502-2	; $ffff-$302-2
+	ldx $e845
+
+	cmp ptr2
+	bne bad
+	cpx ptr2+1		
+	bne bad
+
+	jmp okout
+bad
+	pha
+	phx
+
+	lda #$00
+	ldy #$16	; BAD
+	jsr badout
+	jsr spout
+	pla
+	jsr hexout
+	pla
+	jsr hexout
+	lda $e803
+	jmp hexout
+	
+	.)
+
+

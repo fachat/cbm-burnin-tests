@@ -132,7 +132,8 @@ ckultr
 
 	lda $e800
 	pha
-	and #%11110111
+	; enable video RAM window in $8xxx, set size to 4k
+	lda #%01000010
 	sta $e800
 	
 	lda #$02
