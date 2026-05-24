@@ -923,8 +923,8 @@ initmsg
 m_name	.byt "8032 65" 
 m_cpu 	.byt "02  "		; "02" / "C02" / "816"
 m_mhz	.byt "1 MHZ"
-	.byt " V4.6 "
-	.byt "DATE: 12-04-25 CYCLES: 000000 ", 0
+	.byt " V4.7 "
+	.byt "DATE: 24-05-26 CYCLES: 000000 ", 0
 
 modes
 m_csa	.byt "CS/A"
